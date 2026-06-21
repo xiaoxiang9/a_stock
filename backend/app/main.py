@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.services.market_data import get_etf_buy_decision
+
 
 app = FastAPI(
     title="A Stock API",
@@ -34,3 +36,8 @@ async def welcome() -> dict[str, str]:
 @app.get("/api/health")
 async def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/api/modules/etf-buy-decision")
+async def etf_buy_decision(refresh: bool = False) -> dict:
+    return await get_etf_buy_decision(force_refresh=refresh)

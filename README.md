@@ -36,3 +36,17 @@ npm run dev
 前端使用 Node.js 22 LTS；首次运行时可先执行 `nvm install`。
 
 打开 <http://localhost:5173> 查看欢迎页。开发服务器会将 `/api` 请求代理到 FastAPI。
+
+## 投资模块
+
+### 美股 ETF 买入决策
+
+页面入口：<http://localhost:5173/#/etf-buy-decision>
+
+策略仅在以下条件同时成立时触发买入信号：
+
+```text
+VIX > 28 AND CNN Fear & Greed < 18 AND QQQ RSI(14) < 12
+```
+
+数据来自 Cboe、CNN Business 与 Nasdaq 官方接口。QQQ RSI 使用 Nasdaq 日收盘价并按 Wilder 方法计算；接口响应缓存 5 分钟，可通过 `GET /api/modules/etf-buy-decision?refresh=true` 强制刷新。
