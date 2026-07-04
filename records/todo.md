@@ -20,3 +20,4 @@
 | TODO-20260630-010 | 已完成 | 中 | 模型配置 | 需要将 DeepSeek 运行模型从 flash 切换为 pro | 更新全局模型配置、公共层默认模型和相关测试文档 | 已将 `deepseek-v4-flash` 全部替换为 `deepseek-v4-pro` 并完成验证 |
 | TODO-20260630-011 | 已完成 | 高 | 数据层标准化 | 需要标准化数据层，确保分析依赖的数据可置信，且数据能力不绑定具体标的 | 建立通用数据能力清单，明确查询参数、来源优先级、校验来源、时间和单位口径 | 已新增 `product/data/catalog/data_capabilities.md`，并同步更新数据层入口和项目约定 |
 | TODO-20260630-012 | 已完成 | 高 | 数据层标准化 | 需要将数据获取统一在数据层实现，并生成对应测试脚本 | 把日报、猪周期和市场指标取数从任务层/表达层迁入 `product/data/fetchers/`，任务层只编排 | 已新增通用 fetcher 与 `product/tests/test_data_layer.py`，并完成相关测试验证 |
+| TODO-20260704-001 | 已完成 | 中 | skill 管理 | 需要梳理本机已安装的全部 skill，并给出其他机器可一键克隆使用的文档 | 建立本机全量 skill 清单、源机器打包命令、目标机器镜像恢复脚本和验证命令 | 已新增 `skills/local_skill_installation.md`，并更新 `skills/README.md` |

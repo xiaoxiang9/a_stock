@@ -109,3 +109,13 @@
 - 建设内容：新增 `product/tests/test_data_layer.py`，覆盖通用个股快照、趋势指标、东方财富解析、信号摘要、猪周期趋势卡片和市场指标计算，保护数据层边界。
 - 建设内容：同步更新 `product/data/catalog/data_capabilities.md` 中当前代码位置和迁移状态。
 - 验证结果：数据层测试、后端兼容测试、任务层测试和 Python 编译检查均通过。
+
+## 2026-07-04
+
+### 梳理本机 skill 与跨机器全量克隆方式
+
+- 背景：需要梳理当前机器已安装的全部 Codex / Agent skill，并形成其他机器可一键克隆使用的文档。
+- 建设内容：新增 `skills/local_skill_installation.md`，记录 `~/.codex/skills` 和 `~/.agents/skills` 两套根目录下全部已安装 skill；当前源机器分别为 26 个和 47 个。
+- 建设内容：文档中补充源机器全量打包命令、目标机器镜像恢复脚本、目标机器密钥和登录态配置说明、验证命令和更新克隆包流程。
+- 建设内容：更新 `skills/README.md`，增加本机 skill 安装文档入口。
+- 后续事项：后续新增或更新本机 skill 时，需要同步维护该安装文档；若某项能力稳定为项目自有能力，再迁入 `skills/candidates/` 或 `skills/released/`。

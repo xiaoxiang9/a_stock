@@ -5,5 +5,6 @@
 当前阶段先记录候选能力，不急于抽取。只有当能力稳定、边界清晰、跨项目复用价值高时，才进入正式 skill 化。
 
 - `referenced_skills.md`：项目当前引用或约定优先使用的 skill 清单
+- `local_skill_installation.md`：本机 skill 梳理与跨机器一键安装说明
 - `candidates/`：候选 skill
 - `released/`：已稳定抽取的 skill
