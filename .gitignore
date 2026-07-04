@@ -36,7 +36,6 @@ node_modules/
 logs/
 tmp/
 temp/
-.learnings/
 .miaoxiang_extract/
 .miaoxiang_pkgs/
 .tmp_miaoxiang.md
