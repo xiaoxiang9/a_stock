@@ -1,11 +1,26 @@
 # A Stock
 
-一个基于 FastAPI 与 Vue 3 的前后端项目骨架。
+一个围绕复盘展开的个人投资研究与执行系统。
+
+项目目录规范见：`records/project_structure.md`。
+
+## 项目结构
+
+本项目长期分为四类资产：
+
+- `product/`：项目产物，可独立部署运行的投资复盘系统
+- `records/`：项目构建记录，包含建设日志、todo 和路线图
+- `knowledge/`：项目构建经验沉淀，记录经验、踩坑、模式和重要决策
+- `skills/`：项目构建 skill，记录候选或已抽取的可迁移能力
+
+后续新增文件前，需要先按照 `records/project_structure.md` 确认目录归属。
+
+当前仓库仍保留部分历史目录，后续会逐步按目录规范收敛。
 
 ## 一键启动
 
 ```bash
-./start.sh
+./product/scripts/start.sh
 ```
 
 脚本会自动准备缺失的依赖并启动前后端。前端使用 Node.js 22 LTS；按 `Ctrl+C` 可同时停止两个服务。
@@ -13,7 +28,7 @@
 ## 启动后端
 
 ```bash
-cd backend
+cd product/app/backend
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -27,7 +42,7 @@ uvicorn app.main:app --reload
 另开一个终端：
 
 ```bash
-cd frontend
+cd product/app/frontend
 nvm use
 npm install
 npm run dev
