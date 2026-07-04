@@ -1,0 +1,103 @@
+[backend]
+# 作用：后端服务名。
+title = "A Stock API"
+# 作用：后端服务描述。
+description = "Python + Vue starter API"
+# 作用：后端服务版本号。
+version = "0.1.0"
+# 作用：允许的前端源。
+cors_origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
+# 作用：前端开发时代理到的后端基地址。
+public_base_url = "http://127.0.0.1:8000"
+
+[runtime]
+# 作用：夜间任务重启时优先使用的 Python 路径。
+# 值说明：留空则回退到 ~/.miaoxiang-venv/bin/python。
+python_path = ""
+# 作用：夜间任务防止重复重启的环境变量名。
+# 值说明：保持默认即可。
+reexec_flag = "MUYUAN_NIGHTLY_REEXEC"
+
+[model]
+# 作用：模型外部提供方。
+# 值说明：deepseek = 默认外部模型；codex = 当前模型/本地执行。
+provider = "deepseek"
+# 作用：控制运行时的模型路由档位。
+# 值说明：external = 默认外部模型；current = 当前模型。
+profile = "external"
+# 作用：显式指定模型名；留空时由 provider 默认值决定。
+name = "deepseek-v4-pro"
+# 作用：DeepSeek API Key 所在环境变量。
+api_key_env = "DEEPSEEK_API_KEY"
+# 作用：DeepSeek API Base URL。
+base_url = "https://api.deepseek.com"
+# 作用：是否启用思考模式。
+thinking = true
+# 作用：思考强度。
+reasoning_effort = "high"
+# 作用：是否启用 OSS 路由；true / false。
+use_oss = false
+# 作用：本地 provider 名称；留空表示不指定。
+local_provider = ""
+
+[email]
+# 作用：日报默认收件人。
+recipient = "376597874@qq.com"
+
+[launchd]
+# 作用：定时任务标签。
+label = "com.astock.muyuan-nightly"
+# 作用：定时任务执行小时。
+hour = 21
+# 作用：定时任务执行分钟。
+minute = 0
+
+[tushare]
+# 作用：Tushare token 所在环境变量名。
+token_env = "TUSHARE_TOKEN"
+# 作用：查询标的代码。
+ts_code = "002714.SZ"
+# 作用：历史拉取起始日期。
+start_date = "20260401"
+# 作用：历史拉取结束日期。
+end_date = "20261231"
+
+[report]
+# 作用：日报输出目录。
+output_dir = "product/reports/daily"
+
+[frontend]
+# 作用：前端开发服务器 host。
+dev_host = "0.0.0.0"
+# 作用：前端开发服务器端口。
+dev_port = 5173
+# 作用：前端请求后端 API 时使用的基础路径。
+api_base_path = "/api"
+# 作用：前端查看接口文档时使用的后端文档地址。
+docs_url = "http://127.0.0.1:8000/docs"
+
+[market_data]
+# 作用：VIX 官方日线数据地址。
+vix_data_url = "https://cdn.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv"
+# 作用：VIX 官方信源页。
+vix_source_url = "https://www.cboe.com/tradable_products/vix/vix_historical_data/"
+# 作用：CNN 恐惧贪婪指数数据地址。
+cnn_data_url = "https://production.dataviz.cnn.io/index/fearandgreed/graphdata"
+# 作用：CNN 恐惧贪婪指数信源页。
+cnn_source_url = "https://www.cnn.com/markets/fear-and-greed"
+# 作用：Nasdaq QQQ 历史行情地址。
+nasdaq_data_url = "https://api.nasdaq.com/api/quote/QQQ/historical"
+# 作用：Nasdaq QQQ 历史行情信源页。
+nasdaq_source_url = "https://www.nasdaq.com/market-activity/etf/qqq/historical"
+# 作用：请求头 User-Agent。
+request_user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36"
+# 作用：请求头 Accept。
+request_accept = "application/json, text/plain, */*"
+# 作用：请求头 Accept-Language。
+request_accept_language = "en-US,en;q=0.9"
+# 作用：市场数据缓存 TTL，单位秒。
+cache_ttl_seconds = 300
+# 作用：请求总超时时间，单位秒。
+request_timeout_seconds = 20.0
+# 作用：连接超时时间，单位秒。
+connect_timeout_seconds = 10.0
