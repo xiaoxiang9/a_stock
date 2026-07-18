@@ -103,7 +103,24 @@
 | 当前状态 | 已迁入数据层 fetcher，东方财富校验偶发不可用 |
 | 当前代码位置 | `product/data/fetchers/stock.py` |
 
-### 4.3 A 股个股交易热度
+### 4.3 A 股个股月度估值历史与百分位
+
+| 字段 | 说明 |
+| --- | --- |
+| 数据能力 ID | `stock_monthly_valuation_percentile` |
+| 适用范围 | A 股个股 |
+| 查询参数 | `ts_code`、`as_of_date`、`refresh_if_missing` |
+| 当前用途 | 月度 PE(PB) 历史序列、最新月度值、历史百分位 |
+| 固化数据集优先 | `product/data/snapshots/stock_valuation_monthly/`，待建立 |
+| 主来源 | Tushare `daily_basic`，按月压缩 |
+| 校验来源 | Tushare 月内最新交易日复算、后续可扩展东方财富校验 |
+| 更新频率 | 每月 3 日刷新当月值 |
+| 时间口径 | 月度，按每月最后一个交易日落点 |
+| 单位口径 | PE/PB 为倍；百分位为 0-1 区间经验分位 |
+| 当前状态 | 已实现月度序列加工、独立 API、初始化和刷新入口 |
+| 当前代码位置 | `product/data/processors/stock_valuation_monthly.py`、`product/data/services/stock_valuation_monthly.py`、`product/data/api/main.py` |
+
+### 4.4 A 股个股交易热度
 
 | 字段 | 说明 |
 | --- | --- |
@@ -120,7 +137,7 @@
 | 当前状态 | 已迁入数据层 fetcher，日报任务按参数调用 |
 | 当前代码位置 | `product/data/fetchers/stock.py` |
 
-### 4.4 个股公告检索
+### 4.5 个股公告检索
 
 | 字段 | 说明 |
 | --- | --- |
@@ -137,7 +154,7 @@
 | 当前状态 | 已迁入数据层 fetcher，通过本地 mx-search 缓存进入日报，待结构化 |
 | 当前代码位置 | `product/data/fetchers/signals.py` |
 
-### 4.5 个股月度经营数据检索
+### 4.6 个股月度经营数据检索
 
 | 字段 | 说明 |
 | --- | --- |
@@ -154,7 +171,7 @@
 | 当前状态 | 已迁入数据层 fetcher，通过日报信号进入模型分析，待结构化字段 |
 | 当前代码位置 | `product/data/fetchers/signals.py` |
 
-### 4.6 生猪现货价格
+### 4.7 生猪现货价格
 
 | 字段 | 说明 |
 | --- | --- |
@@ -171,7 +188,7 @@
 | 当前状态 | 已代码固化 |
 | 当前代码位置 | `product/data/fetchers/hog_cycle.py` |
 
-### 4.7 生猪期货价格
+### 4.8 生猪期货价格
 
 | 字段 | 说明 |
 | --- | --- |
@@ -188,7 +205,7 @@
 | 当前状态 | 已代码固化 |
 | 当前代码位置 | `product/data/fetchers/hog_cycle.py` |
 
-### 4.8 生猪现货基差
+### 4.9 生猪现货基差
 
 | 字段 | 说明 |
 | --- | --- |
@@ -205,7 +222,7 @@
 | 当前状态 | 已代码固化 |
 | 当前代码位置 | `product/data/fetchers/hog_cycle.py` |
 
-### 4.9 VIX
+### 4.10 VIX
 
 | 字段 | 说明 |
 | --- | --- |

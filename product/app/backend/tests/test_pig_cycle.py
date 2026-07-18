@@ -7,7 +7,7 @@
 
 import unittest
 
-from product.app.backend.app.services.pig_cycle import build_hog_cycle_metrics, _monthly_last_points
+from product.app.backend.infrastructure.market_data.pig_cycle import build_hog_cycle_metrics, _monthly_last_points
 
 
 class PigCycleMonthlyTrendTests(unittest.TestCase):

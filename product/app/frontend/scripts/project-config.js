@@ -2,7 +2,7 @@
  * 前端构建期项目配置读取工具。
  *
  * 职责：
- * - 读取 product/config/project.toml。
+ * - 读取 product/app/config/app.toml。
  * - 解析本项目使用到的简单 TOML 语法。
  *
  * 边界：
@@ -51,7 +51,7 @@ export function parseProjectToml(text) {
 }
 
 export function loadProjectConfig(configPath) {
-  // Vite 启动时加载 product/config/project.toml，并注入浏览器端。
+  // Vite 启动时加载 product/app/config/app.toml，并注入浏览器端。
   const absolutePath = path.resolve(configPath)
   const text = fs.readFileSync(absolutePath, 'utf8')
   return parseProjectToml(text)

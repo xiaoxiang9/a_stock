@@ -33,45 +33,114 @@ a_stock/
 ```text
 product/
 ├── app/                  # 表达层：前端页面、后端接口、邮件渲染
-├── config/               # 配置层：模型、数据源、邮件、任务、环境配置
-├── core/                 # 核心层：投研分析 agent、模型调用、通用抽象
-├── data/                 # 数据层：数据获取、数据库操作、数据校验、数据清单
-├── jobs/                 # 任务层：定时刷新、日报发送、调研触发
-├── modules/              # 业务层：宏观、行业、好公司池、交易记录、公司调研
+│   ├── backend/          # 功能 API DDD 领域驱动实现
+│   ├── config/           # app 子系统配置
+│   ├── frontend/         # 展示层
+│   └── scripts/          # app 子系统安装、启动脚本
+├── agents/               # 多 Agent 研究体系，基于 LangGraph 实现
+│   ├── config/           # agents 子系统配置
+│   └── scripts/          # agents 子系统安装、启动脚本
+├── data/                 # 数据层：数据获取、加工、校验、标准字段、对外数据 API
+│   ├── config/           # data 子系统配置
+│   └── scripts/          # data 子系统安装、启动脚本
 ├── reports/              # 报告产物：日报、周报、月报、专题报告
-├── tools/                # 工具层：通用工具、格式转换、校验脚本
-├── scripts/              # 安装、初始化、部署、迁移脚本
-├── tests/                # 项目产物测试
+├── scripts/              # 顶层统一安装、启动脚本
 └── docs/                 # 产物文档：部署文档、依赖清单、配置清单、运行说明
 ```
 
 ### 3.1 表达层
 
-`product/app/` 只负责展示和触达，包括前端页面、后端接口、邮件正文渲染。
+`product/app/` 只负责展示和触达，包括前端页面、后端接口和邮件正文渲染。
 
 不要在表达层写死投资判断逻辑。
 
+`product/app/backend/` 是功能 API 的实现中心，采用 DDD 风格组织内部代码。
+建议内部保留以下职责分区：
+
+```text
+product/app/backend/
+├── app/                  # 接口层：FastAPI、路由、启动装配
+├── domain/               # 领域层：实体、值对象、领域规则
+├── application/          # 应用层：用例编排、服务、任务入口
+├── infrastructure/       # 基础设施层：外部依赖、适配器、工具、任务
+└── tests/                # 后端测试
+```
+
+后端只负责功能落地和服务编排，不承载多 Agent 研究编排逻辑。
+
+`product/app/` 的正式目录树如下：
+
+```text
+product/app/
+├── backend/
+│   ├── app/
+│   ├── application/
+│   ├── domain/
+│   ├── infrastructure/
+│   └── tests/
+├── config/
+│   ├── app.toml
+│   ├── private.local.toml
+│   └── private.local.toml.example
+├── frontend/
+└── scripts/
+    ├── install.sh
+    ├── start.sh
+    └── stop.sh
+```
+
 ### 3.2 配置层
 
-`product/config/` 只存放运行配置。模型、数据源、邮件、任务调度、部署参数都必须从配置读取。
+`product/app/config/`、`product/agents/config/`、`product/data/config/` 分别存放三套子系统的运行配置。
 
 不要在业务代码中硬编码可变配置。
 
-### 3.3 核心层
+当前阶段，`app`、`agents`、`data` 三套子系统各自维护一套独立配置文件和配置加载实现。
+公共或跨系统默认值可以保留在各子系统自己的 `config/` 目录中，但子系统自身的运行参数应优先由本子系统目录下的配置读取。
 
-`product/core/` 存放相对通用的能力，例如：
+### 3.3 多 Agent 体系
 
-- 投研分析 agent
-- 模型调用和模型路由
-- 统一配置读取
-- 通用结构化输出校验
-- 基础类型和异常处理
+`product/agents/` 是独立的研究体系，不与后端功能实现混写。
+该目录用于承载：
 
-核心层不直接绑定某一只股票或某一个行业。
+- 宏观分析 Agent
+- 行业分析 Agent
+- 个股分析 Agent
+- 估值分析 Agent
+- 复盘汇总 Agent
+- 研究框架和消息传递协议
+
+多 Agent 体系负责分析、判断和证据整合，最终向后端输出结构化结果。
+
+`product/agents/` 的正式目录树如下：
+
+```text
+product/agents/
+├── workflows/            # LangGraph 工作流定义
+├── agents/               # 各个研究 Agent 定义
+│   ├── macro/
+│   ├── industry/
+│   ├── company/
+│   ├── valuation/
+│   └── review/
+├── prompts/              # Agent prompt 模板与版本化文档
+├── schemas/              # Agent 输入输出结构定义
+├── memory/               # 研究记忆、上下文、会话记录
+├── config/
+│   ├── agents.toml
+│   ├── private.local.toml
+│   └── private.local.toml.example
+└── scripts/
+    ├── install.sh
+    ├── start.sh
+    └── run_research.sh
+```
 
 ### 3.4 数据层
 
-`product/data/` 是股票分析的基础。数据层负责数据来源、获取、校验、缓存、数据库操作和衍生指标。
+`product/data/` 是股票分析的数据基础。数据层负责数据来源、获取、加工、校验、标准字段和对外数据 API。
+
+`product/data/` 也作为独立子系统维护自己的配置、安装脚本和启动脚本，便于后续单独演进数据加工和数据服务能力。
 
 推荐结构：
 
@@ -99,50 +168,41 @@ product/data/
 
 关键数据必须进入 `product/data/catalog/` 的数据获取清单，并尽量通过代码固化执行路径。
 
-### 3.5 任务层
+`product/data/` 的正式目录树如下：
 
-`product/jobs/` 管理定时任务，包括：
+```text
+product/data/
+├── catalog/              # 数据获取清单、字段字典、来源优先级
+├── fetchers/             # 已代码固化的数据获取逻辑
+├── adapters/             # 外部数据源适配
+├── processors/           # 数据清洗、归一化、指标加工
+├── services/             # 数据服务编排、数据库读写、任务入口
+├── validators/           # 数据校验、双源验证、口径检查
+├── snapshots/            # 日快照、周快照、月快照
+├── api/                  # 对外数据 API 或导出接口
+├── config/
+│   ├── data.toml
+│   ├── private.local.toml
+│   └── private.local.toml.example
+└── scripts/
+    ├── install.sh
+    ├── start.sh
+    └── refresh.sh
+```
 
-- 定时刷新数据
-- 定时生成报告
-- 定时发送邮件
-- 定时触发调研分析
-
-任务层负责编排，不承载复杂投资判断。
-
-### 3.6 业务层
-
-`product/modules/` 存放关键业务模块，例如：
-
-- 宏观复盘
-- 重点行业复盘
-- 好公司池
-- 公司调研
-- 个股追踪
-- 交易操作记录
-- 五档状态管理
-
-业务层负责把数据放进投资框架中解释，但涉及分析、判断、决策的部分仍应由模型驱动。
-
-### 3.7 报告产物
+### 3.5 报告产物
 
 `product/reports/` 存放最终产出的日报、周报、月报和专题报告。
 
 报告是结果，不是业务规则源头。
 
-### 3.8 工具层
+### 3.6 脚本层
 
-`product/tools/` 存放通用工具，例如格式转换、数据校验、文件检查、报告预览生成。
-
-工具层不直接绑定具体业务结论。
-
-### 3.9 脚本层
-
-`product/scripts/` 存放人工执行脚本，例如安装、初始化、部署、迁移。
+`product/scripts/` 只保留顶层统一安装和启动脚本。
 
 项目必须维护安装脚本，支持快速独立部署。
 
-### 3.10 产物文档
+### 3.7 产物文档
 
 `product/docs/` 存放可部署系统的文档，至少包括：
 
@@ -151,6 +211,31 @@ product/data/
 - 配置清单
 - 启动说明
 - 定时任务说明
+
+### 3.8 目录合并原则
+
+当前阶段，`product/core/`、`product/jobs/`、`product/modules/`、`product/tools/` 不再作为顶层长期目录单独维护。
+相关能力应分别并入：
+
+- `product/app/backend/` 的领域、应用、基础设施分层
+- `product/agents/` 的研究编排体系
+- `product/data/` 的数据加工体系
+
+如果后续确有独立复用价值，再评估是否重新拆分为长期目录。
+
+### 3.9 统一脚本入口
+
+`product/scripts/` 只保留最外层统一入口脚本，原则上只做编排，不承载业务逻辑。
+
+建议最外层至少保留：
+
+```text
+product/scripts/
+├── install.sh            # 顺序调用 app / agents / data 的安装脚本
+└── start.sh              # 顺序或并行调用 app / agents / data 的启动脚本
+```
+
+各子系统的安装和启动逻辑应分别放在自身目录下，由最外层脚本直接调用。
 
 ## 4. 项目构建记录
 
@@ -206,7 +291,7 @@ skills/
 每次新增文件前，必须先完成以下检查：
 
 1. 这个文件属于项目产物、构建记录、经验沉淀还是 skill？
-2. 如果属于项目产物，它对应哪一层：表达层、配置层、核心层、数据层、任务层、业务层、报告产物、工具层、脚本层还是产物文档？
+2. 如果属于项目产物，它对应哪一层：表达层、配置层、数据层、报告产物、脚本层还是产物文档？
 3. 是否已有同类目录或文件可以复用？
 4. 是否会造成根目录新增一级目录？如会，默认不允许，除非先更新本规范。
 5. 是否涉及数据获取？如涉及，必须同步检查数据获取优先级和关键数据清单。

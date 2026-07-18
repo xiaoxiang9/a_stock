@@ -2,6 +2,10 @@
 .env
 .env.*
 !.env.example
+product/config/private.local.toml
+product/app/config/private.local.toml
+product/data/config/private.local.toml
+product/agents/config/private.local.toml
 *.pem
 *.key
 
@@ -39,6 +43,12 @@ temp/
 .miaoxiang_extract/
 .miaoxiang_pkgs/
 .tmp_miaoxiang.md
+product/jobs/.muyuan_nightly.scheduler.lock
+product/scripts/.run/
+product/reports/daily/*.md
+product/reports/daily/*.html
+!product/reports/daily/README.md
+!product/reports/daily/muyuan_21_template.md
 
 # Editors and IDEs
 .idea/

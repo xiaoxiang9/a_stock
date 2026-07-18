@@ -193,7 +193,7 @@
 
 当前实现使用的运行时配置项：
 
-- 配置文件路径：`product/config/project.toml`
+- 配置文件路径：`product/app/config/app.toml`
 - `backend.title`：后端服务名
 - `backend.description`：后端服务描述
 - `backend.version`：后端版本号

@@ -17,17 +17,12 @@
 
 如果新增文件属于 `product/`，必须先判断它属于哪一层：
 
-- 表达层：`product/app/`
-- 配置层：`product/config/`
-- 核心层：`product/core/`
-- 数据层：`product/data/`
-- 任务层：`product/jobs/`
-- 业务层：`product/modules/`
-- 报告产物：`product/reports/`
-- 工具层：`product/tools/`
-- 人工脚本：`product/scripts/`
-- 测试：`product/tests/`
-- 产物文档：`product/docs/`
+- `product/app/`：表达层与功能后端，包含 `backend/`、`config/`、`frontend/`、`scripts/` 与 `backend/tests/`
+- `product/agents/`：多 Agent 研究体系，包含 `config/`、`scripts/` 以及后续的工作流目录
+- `product/data/`：数据层，包含 `config/`、`fetchers/`、`adapters/`、`processors/`、`validators/`、`snapshots/`、`api/`
+- `product/reports/`：报告产物
+- `product/scripts/`：顶层统一安装、启动脚本
+- `product/docs/`：产物文档
 
 ## 代码注释规则
 

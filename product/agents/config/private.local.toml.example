@@ -1,0 +1,11 @@
+# agents 子系统私密配置示例。
+#
+# 说明：
+# - 复制后填写模型相关敏感值。
+# - 当前先保留模板，后续可接入独立读取逻辑。
+
+[secrets]
+deepseek_api_key = ""
+websearch_api_key = ""
+tushare_token = ""
+mx_api_key = ""

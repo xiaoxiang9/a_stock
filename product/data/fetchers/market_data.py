@@ -6,8 +6,8 @@
 - 维护数据来源、统计口径、缓存和单数据源失败兜底结构。
 
 上下游关系：
-- 上游依赖 `product.core.project_config` 读取市场数据接口、请求头、超时和缓存配置。
-- 下游由后端表达层 `product/app/backend/app/services/market_data.py` 兼容导出，
+- 上游依赖 `product.data.config.data_config` 读取市场数据接口、请求头、超时和缓存配置。
+- 下游由后端基础设施层 `product/app/backend/infrastructure/market_data/market_data.py` 兼容导出，
   再提供给 API 页面展示。
 
 职责边界：
@@ -26,19 +26,19 @@ from typing import Any, Callable, Coroutine
 
 import httpx
 
-from product.core.project_config import load_project_config
+from product.data.config.data_config import load_data_config
 
 
-PROJECT_CONFIG = load_project_config()
+DATA_CONFIG = load_data_config()
 
 # 市场数据接口对请求头较敏感，统一从配置读取，便于后续按数据源调整。
 REQUEST_HEADERS = {
-    "User-Agent": PROJECT_CONFIG.market_data.request_user_agent,
-    "Accept": PROJECT_CONFIG.market_data.request_accept,
-    "Accept-Language": PROJECT_CONFIG.market_data.request_accept_language,
+    "User-Agent": DATA_CONFIG.market_data.request_user_agent,
+    "Accept": DATA_CONFIG.market_data.request_accept,
+    "Accept-Language": DATA_CONFIG.market_data.request_accept_language,
 }
 
-CACHE_TTL_SECONDS = PROJECT_CONFIG.market_data.cache_ttl_seconds
+CACHE_TTL_SECONDS = DATA_CONFIG.market_data.cache_ttl_seconds
 # 这里使用进程内短缓存：页面多次刷新时不重复打官方接口；
 # refresh=true 会绕过缓存，适合人工校验最新数据。
 _cache: dict[str, Any] = {"expires_at": 0.0, "payload": None}
@@ -69,7 +69,7 @@ def _one_month_trend(points: list[dict[str, Any]]) -> list[dict[str, Any]]:
 async def _fetch_vix(client: httpx.AsyncClient) -> dict[str, Any]:
     """读取 CBOE VIX 官方历史 CSV，并转换成前端统一指标结构。"""
     response = await client.get(
-        PROJECT_CONFIG.market_data.vix_data_url,
+        DATA_CONFIG.market_data.vix_data_url,
         headers={"Accept": "text/csv,*/*"},
     )
     response.raise_for_status()
@@ -101,7 +101,7 @@ async def _fetch_vix(client: httpx.AsyncClient) -> dict[str, Any]:
         "methodology": "最新官方日线收盘值",
         "source": {
             "name": "Cboe Global Markets",
-            "url": PROJECT_CONFIG.market_data.vix_source_url,
+            "url": DATA_CONFIG.market_data.vix_source_url,
         },
     }
 
@@ -113,7 +113,7 @@ async def _fetch_cnn(client: httpx.AsyncClient) -> dict[str, Any]:
         "Origin": "https://www.cnn.com",
         "Referer": "https://www.cnn.com/",
     }
-    response = await client.get(PROJECT_CONFIG.market_data.cnn_data_url, headers=headers)
+    response = await client.get(DATA_CONFIG.market_data.cnn_data_url, headers=headers)
     response.raise_for_status()
     payload = response.json()
 
@@ -146,7 +146,7 @@ async def _fetch_cnn(client: httpx.AsyncClient) -> dict[str, Any]:
         "methodology": f"CNN 综合情绪评分 · {current.get('rating', '').replace('_', ' ').title()}",
         "source": {
             "name": "CNN Business",
-            "url": PROJECT_CONFIG.market_data.cnn_source_url,
+            "url": DATA_CONFIG.market_data.cnn_source_url,
         },
     }
 
@@ -189,9 +189,9 @@ async def _fetch_qqq_rsi(client: httpx.AsyncClient) -> dict[str, Any]:
     }
     headers = {
         **REQUEST_HEADERS,
-        "Referer": PROJECT_CONFIG.market_data.nasdaq_source_url,
+        "Referer": DATA_CONFIG.market_data.nasdaq_source_url,
     }
-    response = await client.get(PROJECT_CONFIG.market_data.nasdaq_data_url, params=params, headers=headers)
+    response = await client.get(DATA_CONFIG.market_data.nasdaq_data_url, params=params, headers=headers)
     response.raise_for_status()
     payload = response.json()
     if payload.get("status", {}).get("rCode") != 200:
@@ -224,7 +224,7 @@ async def _fetch_qqq_rsi(client: httpx.AsyncClient) -> dict[str, Any]:
         "methodology": "基于 Nasdaq 日收盘价计算 RSI(14)，Wilder 平滑",
         "source": {
             "name": "Nasdaq",
-            "url": PROJECT_CONFIG.market_data.nasdaq_source_url,
+            "url": DATA_CONFIG.market_data.nasdaq_source_url,
         },
     }
 
@@ -233,9 +233,9 @@ def _unavailable_indicator(key: str, error: Exception) -> dict[str, Any]:
     """构造单个指标不可用时的统一返回结构。"""
     # 单个数据源失败不应拖垮整个页面；用“不可用指标”显式暴露错误和来源。
     labels = {
-        "vix": ("VIX", "CBOE 波动率指数", 28, ">", "Cboe Global Markets", PROJECT_CONFIG.market_data.vix_source_url),
-        "cnn": ("CNN", "Fear & Greed Index", 18, "<", "CNN Business", PROJECT_CONFIG.market_data.cnn_source_url),
-        "qqq_rsi": ("QQQ RSI", "Invesco QQQ · 14 日", 12, "<", "Nasdaq", PROJECT_CONFIG.market_data.nasdaq_source_url),
+        "vix": ("VIX", "CBOE 波动率指数", 28, ">", "Cboe Global Markets", DATA_CONFIG.market_data.vix_source_url),
+        "cnn": ("CNN", "Fear & Greed Index", 18, "<", "CNN Business", DATA_CONFIG.market_data.cnn_source_url),
+        "qqq_rsi": ("QQQ RSI", "Invesco QQQ · 14 日", 12, "<", "Nasdaq", DATA_CONFIG.market_data.nasdaq_source_url),
     }
     name, subtitle, threshold, operator, source_name, source_url = labels[key]
     return {
@@ -272,8 +272,8 @@ async def _build_payload() -> dict[str, Any]:
     """并发获取三项指标并组装 ETF 决策接口返回体。"""
     # 三项指标相互独立，并发获取能缩短页面等待时间。
     timeout = httpx.Timeout(
-        PROJECT_CONFIG.market_data.request_timeout_seconds,
-        connect=PROJECT_CONFIG.market_data.connect_timeout_seconds,
+        DATA_CONFIG.market_data.request_timeout_seconds,
+        connect=DATA_CONFIG.market_data.connect_timeout_seconds,
     )
     async with httpx.AsyncClient(timeout=timeout, follow_redirects=True) as client:
         indicators = await asyncio.gather(

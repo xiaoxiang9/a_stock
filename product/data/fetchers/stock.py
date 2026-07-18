@@ -16,30 +16,9 @@ import os
 import re
 import subprocess
 import sys
-from functools import lru_cache
+from datetime import date, timedelta
 from pathlib import Path
 from typing import Any, Iterable
-
-from product.core.project_config import ProjectConfig, load_project_config
-
-
-def load_env_from_bash_profile() -> None:
-    """从本机 bash_profile 补充环境变量。
-
-    主要服务本地定时任务，避免 launchd 启动时缺少 Tushare token。
-    """
-    profile = Path.home() / ".bash_profile"
-    if not profile.exists():
-        return
-    export_pattern = re.compile(r'^export\s+([A-Za-z_][A-Za-z0-9_]*)="?([^"\n]+)"?$')
-    for raw_line in profile.read_text(encoding="utf-8").splitlines():
-        line = raw_line.strip()
-        match = export_pattern.match(line)
-        if not match:
-            continue
-        key, value = match.groups()
-        os.environ.setdefault(key, value)
-
 
 def _row_value(row: Any, key: str) -> Any:
     """兼容 pandas Series 和普通 dict 的字段读取。"""
@@ -82,17 +61,30 @@ def _latest_row(rows: Any) -> Any:
     return rows[0]
 
 
-@lru_cache(maxsize=8)
+def _resolve_tushare_window(as_of_date: str | None = None, lookback_days: int = 180) -> tuple[str, str]:
+    """根据业务时点动态计算 Tushare 查询窗口。
+
+    约定：
+    - end_date 取 as_of_date；若未传入，则取当天日期
+    - start_date 按 lookback_days 向前回溯
+    - 这里不做跨日缓存，保证每次执行都重新判断最新交易日
+    """
+    end_day = date.fromisoformat(as_of_date) if as_of_date else date.today()
+    start_day = end_day - timedelta(days=max(lookback_days, 1))
+    return start_day.strftime("%Y%m%d"), end_day.strftime("%Y%m%d")
+
+
 def load_tushare_history(
     token: str,
     *,
     ts_code: str,
-    start_date: str,
-    end_date: str,
+    as_of_date: str | None = None,
+    lookback_days: int = 180,
 ) -> tuple[Any, Any]:
     """通过 Tushare 读取个股行情和基础估值数据。"""
     import tushare as ts  # type: ignore
 
+    start_date, end_date = _resolve_tushare_window(as_of_date=as_of_date, lookback_days=lookback_days)
     pro = ts.pro_api(token)
     daily = pro.daily(
         ts_code=ts_code,
@@ -240,34 +232,36 @@ def build_stock_trend_metrics(daily_rows: Any, basic_rows: Any) -> list[dict[str
     ]
 
 
-def get_tushare_snapshot(project_config: ProjectConfig | None = None) -> tuple[str, dict[str, float]]:
-    """获取配置标的的 Tushare 最新交易日快照。"""
-    config = project_config or load_project_config()
-    load_env_from_bash_profile()
-    token = os.getenv(config.tushare.token_env)
-    if not token:
-        raise RuntimeError(f"{config.tushare.token_env} is not configured.")
+def get_tushare_snapshot(
+    *,
+    token: str,
+    ts_code: str,
+    as_of_date: str | None = None,
+    lookback_days: int = 180,
+) -> tuple[str, dict[str, float]]:
+    """获取指定标的的 Tushare 最新交易日快照。"""
     daily, daily_basic = load_tushare_history(
         token,
-        ts_code=config.tushare.ts_code,
-        start_date=config.tushare.start_date,
-        end_date=config.tushare.end_date,
+        ts_code=ts_code,
+        as_of_date=as_of_date,
+        lookback_days=lookback_days,
     )
     return build_stock_snapshot(daily, daily_basic)
 
 
-def get_tushare_trend_metrics(project_config: ProjectConfig | None = None) -> list[dict[str, Any]]:
-    """获取配置标的的 Tushare 趋势指标。"""
-    config = project_config or load_project_config()
-    load_env_from_bash_profile()
-    token = os.getenv(config.tushare.token_env)
-    if not token:
-        return []
+def get_tushare_trend_metrics(
+    *,
+    token: str,
+    ts_code: str,
+    as_of_date: str | None = None,
+    lookback_days: int = 180,
+) -> list[dict[str, Any]]:
+    """获取指定标的的 Tushare 趋势指标。"""
     daily, daily_basic = load_tushare_history(
         token,
-        ts_code=config.tushare.ts_code,
-        start_date=config.tushare.start_date,
-        end_date=config.tushare.end_date,
+        ts_code=ts_code,
+        as_of_date=as_of_date,
+        lookback_days=lookback_days,
     )
     return build_stock_trend_metrics(daily, daily_basic)
 
@@ -331,7 +325,6 @@ def get_eastmoney_snapshot(
     skill_script: Path | None = None,
 ) -> dict[str, float] | None:
     """调用东方财富 mx-data skill 获取个股校验数据。"""
-    load_env_from_bash_profile()
     script = skill_script or (Path.home() / ".codex" / "skills" / "mx-data" / "mx_data.py")
     if not script.exists():
         return None

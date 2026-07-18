@@ -1,0 +1,30 @@
+# agents 子系统公开配置。
+#
+# 说明：
+# - 这份配置承载多 Agent 研究体系自己的运行参数。
+# - 当前先保留模型路由和工作流相关的基础字段，后续可按研究角色继续拆分。
+
+[model]
+provider = "deepseek"
+profile = "external"
+name = "deepseek-v4-pro"
+api_key_env = "DEEPSEEK_API_KEY"
+base_url = "https://api.deepseek.com"
+thinking = false
+reasoning_effort = "medium"
+use_oss = false
+local_provider = ""
+
+[workflow]
+default_graph = "research"
+max_reflection_rounds = 3
+enable_evidence_collection = true
+
+[search]
+websearch_enabled = true
+websearch_command = "websearch-deepseek"
+websearch_api_key_env = "DEEPSEEK_API_KEY"
+websearch_model = "deepseek-v4-flash"
+websearch_thinking = "enabled"
+websearch_max_tokens = 32768
+websearch_timeout_seconds = 90

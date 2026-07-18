@@ -1,0 +1,40 @@
+# data 子系统公开配置。
+#
+# 说明：
+# - 这份配置承载数据系统自己的公开参数。
+# - 当前版本先与项目现有数据层口径保持一致，后续再拆分为数据源、缓存和校验策略。
+
+[tushare]
+token_env = "TUSHARE_TOKEN"
+ts_code = "002714.SZ"
+
+[mysql]
+host = "127.0.0.1"
+port = 3306
+database = "astock"
+connect_timeout_seconds = 5.0
+
+[api]
+host = "0.0.0.0"
+port = 8010
+prefix = "/api"
+
+[monthly_refresh]
+label = "com.astock.data-monthly-refresh"
+day = 3
+hour = 1
+minute = 12
+
+[market_data]
+vix_data_url = "https://cdn.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv"
+vix_source_url = "https://www.cboe.com/tradable_products/vix/vix_historical_data/"
+cnn_data_url = "https://production.dataviz.cnn.io/index/fearandgreed/graphdata"
+cnn_source_url = "https://www.cnn.com/markets/fear-and-greed"
+nasdaq_data_url = "https://api.nasdaq.com/api/quote/QQQ/historical"
+nasdaq_source_url = "https://www.nasdaq.com/market-activity/etf/qqq/historical"
+request_user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36"
+request_accept = "application/json, text/plain, */*"
+request_accept_language = "en-US,en;q=0.9"
+cache_ttl_seconds = 300
+request_timeout_seconds = 20.0
+connect_timeout_seconds = 10.0

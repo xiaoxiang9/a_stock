@@ -36,7 +36,7 @@ docs_url = "http://127.0.0.1:8000/docs"
 
 test('loadProjectConfig reads the shared project config file', () => {
   // 直接读取仓库共享配置，确保 Vite 构建入口可用。
-  const config = loadProjectConfig(path.resolve(projectRoot, 'product/config/project.toml'))
+  const config = loadProjectConfig(path.resolve(projectRoot, 'product/app/config/app.toml'))
 
   assert.equal(config.frontend.dev_port, 5173)
   assert.equal(config.backend.public_base_url, 'http://127.0.0.1:8000')

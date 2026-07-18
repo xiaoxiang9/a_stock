@@ -7,7 +7,7 @@
 
 import unittest
 
-from product.app.backend.app.services.market_data import _calculate_wilder_rsi, _trigger_deviation
+from product.app.backend.infrastructure.market_data.market_data import _calculate_wilder_rsi, _trigger_deviation
 
 
 class WilderRsiTests(unittest.TestCase):

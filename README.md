@@ -17,13 +17,34 @@
 
 当前仓库仍保留部分历史目录，后续会逐步按目录规范收敛。
 
+## 架构总览
+
+这套项目的部署与配置边界固定为四条：
+
+- `app` 配置进 `product/app/config/app.toml`
+- `app` 私密配置进 `product/app/config/private.local.toml`
+- `data` 配置进 `product/data/config/data.toml`
+- `agents` 配置进 `product/agents/config/agents.toml`
+- 安装脚本只做检测、确认、安装和初始化，不自动填密钥
+- 启动脚本先校验配置和依赖，失败直接阻断并返回原因
+
+敏感值不依赖 shell 环境变量，也不依赖沙箱环境；业务代码只读配置中心。
+
 ## 一键启动
 
 ```bash
 ./product/scripts/start.sh
 ```
 
-脚本会自动准备缺失的依赖并启动前后端。前端使用 Node.js 22 LTS；按 `Ctrl+C` 可同时停止两个服务。
+启动前建议先执行安装脚本：
+
+```bash
+./product/scripts/install.sh
+```
+
+安装脚本会在用户确认后补齐缺失依赖，并初始化私密配置模板。`start.sh` 只做启动前校验，不会自动安装依赖；如果检测到已有项目进程，它会先暂停旧实例再启动新实例，避免端口冲突。若私密配置缺值或依赖未安装完成，它会直接退出并返回原因。后端启动后会自动挂载每天 `01:12` 的日报调度器，因此部署到服务器后只要保持后端进程运行，就会按配置自动发送复盘报告。前端使用 Node.js 22 LTS；按 `Ctrl+C` 可同时停止两个服务。
+
+`app` 的公开配置统一放在 `product/app/config/app.toml`，私密配置统一放在 `product/app/config/private.local.toml`。`data` 与 `agents` 也分别在各自子系统目录下维护自己的配置文件和加载器。各自模板与说明见对应子系统目录，私密文件都已加入 `.gitignore`，不会同步到远端仓库。
 
 ## 启动后端
 

@@ -1,0 +1,12 @@
+# data 子系统私密配置示例。
+#
+# 说明：
+# - 复制后填写 Tushare token 等数据源敏感值。
+# - 当前先保留模板，后续可接入独立读取逻辑。
+
+[secrets]
+tushare_token = ""
+
+[mysql]
+user = ""
+password = ""

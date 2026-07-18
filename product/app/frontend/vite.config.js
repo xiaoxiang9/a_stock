@@ -17,7 +17,7 @@ import { loadProjectConfig } from './scripts/project-config.js'
 const frontendDir = path.dirname(fileURLToPath(import.meta.url))
 const projectRoot = path.resolve(frontendDir, '../../..')
 // 前端端口、API 代理目标等统一读取全局配置，避免前后端各配一套。
-const projectConfig = loadProjectConfig(path.resolve(projectRoot, 'product/config/project.toml'))
+const projectConfig = loadProjectConfig(path.resolve(projectRoot, 'product/app/config/app.toml'))
 
 export default defineConfig({
   plugins: [vue()],
