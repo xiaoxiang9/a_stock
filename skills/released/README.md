@@ -7,5 +7,10 @@
 ## 当前清单
 
 - `tushare`：A 股、指数、ETF、财务、资金流等基础研究 skill
-- `mx-data`：东方财富妙想金融数据 skill
-- `mx-search`：东方财富妙想资讯搜索 skill
+- `mx-finance-data`：东方财富妙想金融数据 skill
+- `mx-finance-search`：东方财富妙想资讯搜索 skill
+
+兼容说明：
+
+- `mx-data`、`mx-search` 仍保留为迁移期兼容别名。
+- 新代码应优先引用 `mx-finance-data` 和 `mx-finance-search`。

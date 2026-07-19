@@ -20,6 +20,9 @@ from datetime import date, timedelta
 from pathlib import Path
 from typing import Any, Iterable
 
+from product.data.adapters.mx_skills import query_mx_finance_snapshot
+
+
 def _row_value(row: Any, key: str) -> Any:
     """兼容 pandas Series 和普通 dict 的字段读取。"""
     if hasattr(row, "__getitem__"):
@@ -324,7 +327,16 @@ def get_eastmoney_snapshot(
     stock_code: str = "002714",
     skill_script: Path | None = None,
 ) -> dict[str, float] | None:
-    """调用东方财富 mx-data skill 获取个股校验数据。"""
+    """调用东方财富妙想 skill 获取个股校验数据。
+
+    优先使用仓库固化的 `mx-finance-data`，失败后回退到旧的 `mx-data`
+    兼容脚本，便于迁移期平滑过渡。
+    """
+    query = f"{stock_name}{stock_code}最新PE PB 换手率 总市值"
+    snapshot = query_mx_finance_snapshot(query, indicators="PE PB 换手率 总市值")
+    if snapshot:
+        return snapshot
+
     if skill_script is not None:
         script = skill_script
     else:
@@ -335,7 +347,7 @@ def get_eastmoney_snapshot(
     if not script.exists():
         return None
     result = subprocess.run(
-        [sys.executable, str(script), f"{stock_name}{stock_code}最新PE PB 换手率 总市值"],
+        [sys.executable, str(script), query],
         capture_output=True,
         text=True,
         env=os.environ.copy(),

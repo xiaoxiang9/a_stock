@@ -48,12 +48,12 @@ def build_valuation_prompt(request: ValuationRequest) -> str:
   "missing_data": ["缺失项1"],
   "next_questions": ["下一步需要补充的问题1"],
   "source_list": ["来源1", "来源2"],
-      "data_needs": [
+          "data_needs": [
         {{
           "title": "缺失数据项",
           "query": "用于获取该数据的自然语言查询",
           "required": true,
-          "preferred_sources": ["tushare", "akshare", "mx-data", "mx-search", "websearch-deepseek"],
+          "preferred_sources": ["tushare", "akshare", "mx-finance-data", "mx-finance-search", "mx-data", "mx-search", "websearch-deepseek"],
           "rationale": "为什么需要这个数据",
           "fallback_queries": ["可替代查询1", "可替代查询2"]
         }}

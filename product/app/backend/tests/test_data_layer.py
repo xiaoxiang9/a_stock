@@ -9,11 +9,16 @@ from __future__ import annotations
 
 import json
 import unittest
+import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
+import pandas as pd
+
+from product.data.adapters.mx_skills import extract_mx_finance_snapshot_from_workbook
 from product.data.fetchers.hog_cycle import build_hog_cycle_metrics
 from product.data.fetchers.market_data import _calculate_wilder_rsi, _trigger_deviation
+from product.data.fetchers.signals import get_signal_data
 from product.data.processors.stock_valuation_monthly import (
     build_monthly_valuation_payload,
     build_monthly_valuation_points,
@@ -104,6 +109,27 @@ class StockDataFetcherTests(unittest.TestCase):
         parsed = parse_eastmoney_stdout(stdout)
 
         self.assertEqual(parsed, {"total_mv_billion": 310.0, "pe_ttm": 28.5, "turnover_rate": 1.23})
+
+    def test_extract_mx_finance_snapshot_from_workbook_reads_latest_sheet(self) -> None:
+        """验证 mx-finance-data 产出的工作簿可以提取最新交易日快照。"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            xlsx_path = Path(tmpdir) / "mx_finance_data.xlsx"
+            frame = pd.DataFrame(
+                {
+                    "指标": ["市盈率PE(TTM)", "市净率PB", "换手率", "总市值"],
+                    "2026-07-17": ["23.51倍", "2.88倍", "2.777%", "2299亿"],
+                }
+            )
+            with pd.ExcelWriter(xlsx_path, engine="openpyxl") as writer:
+                frame.to_excel(writer, index=False)
+
+            trade_date, snapshot = extract_mx_finance_snapshot_from_workbook(xlsx_path)
+
+        self.assertEqual(trade_date, "2026-07-17")
+        self.assertEqual(snapshot["pe_ttm"], 23.51)
+        self.assertEqual(snapshot["pb"], 2.88)
+        self.assertEqual(snapshot["turnover_rate"], 2.777)
+        self.assertEqual(snapshot["total_mv_billion"], 2299.0)
 
     def test_resolve_tushare_window_uses_dynamic_as_of_date(self) -> None:
         """验证 Tushare 查询窗口会按业务时点动态计算。"""
@@ -303,6 +329,14 @@ class SignalDataFetcherTests(unittest.TestCase):
         lines = summarize_mx_search_output(raw, limit=3, title_keywords=["业绩预告"])
 
         self.assertEqual(lines, ["2026-07-10｜巨潮资讯｜麦格米特：2026年半年度业绩预告"])
+
+    def test_get_signal_data_prefers_mx_finance_search(self) -> None:
+        """验证信号抓取优先调用新 skill，再回退到本地缓存。"""
+        with patch("product.data.fetchers.signals.query_mx_finance_news_summary", return_value=["2026-07-10｜巨潮资讯｜牧原股份公告"]):
+            with patch("product.data.fetchers.signals._load_latest_cached_signal_lines", return_value=[]):
+                result = get_signal_data(company_name="牧原股份")
+
+        self.assertEqual(result["announcements"], ["2026-07-10｜巨潮资讯｜牧原股份公告"])
 
 
 class HogCycleDataFetcherTests(unittest.TestCase):

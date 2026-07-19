@@ -47,7 +47,7 @@
   "check_sources": [
     {
       "name": "东方财富",
-      "method": "mx-data",
+      "method": "mx-finance-data",
       "url": "",
       "status": "unavailable"
     }
@@ -96,7 +96,7 @@
 | 当前用途 | PE(TTM)、PB、总市值、流通市值等估值快照 |
 | 固化数据集优先 | `product/data/validated/stock_valuation_metrics/`，待建立 |
 | 主来源 | Tushare `daily_basic` |
-| 校验来源 | 东方财富 `mx-data` |
+| 校验来源 | 东方财富 `mx-finance-data` |
 | 更新频率 | 交易日收盘后 |
 | 时间口径 | 交易日 |
 | 单位口径 | PE/PB 为倍，总市值统一为亿元 |
@@ -130,7 +130,7 @@
 | 当前用途 | 换手率、量比、成交活跃度趋势 |
 | 固化数据集优先 | `product/data/validated/stock_trading_heat/`，待建立 |
 | 主来源 | Tushare `daily_basic` |
-| 校验来源 | 东方财富 `mx-data` |
+| 校验来源 | 东方财富 `mx-finance-data` |
 | 更新频率 | 交易日收盘后 |
 | 时间口径 | 交易日 |
 | 单位口径 | 换手率为百分比 |
@@ -147,11 +147,11 @@
 | 当前用途 | 日报重大公告、可转债提示、董事会决议等信号 |
 | 固化数据集优先 | `product/data/validated/stock_announcements/`，待建立 |
 | 主来源 | 交易所公告、巨潮资讯、公司公告 |
-| 校验来源 | 东方财富 `mx-search`、东方财富公告、权威财经网站 |
+| 校验来源 | 东方财富 `mx-finance-search`、东方财富公告、权威财经网站 |
 | 更新频率 | 每日 |
 | 时间口径 | 公告披露日 |
 | 单位口径 | 非数值数据，必须保留标题、发布日期、来源和链接 |
-| 当前状态 | 已迁入数据层 fetcher，通过本地 mx-search 缓存进入日报，待结构化 |
+| 当前状态 | 已迁入数据层 fetcher，优先通过本地 `mx-finance-search` 技能获取，必要时回退到本地 mx-search 缓存，待进一步结构化 |
 | 当前代码位置 | `product/data/fetchers/signals.py` |
 
 ### 4.6 个股月度经营数据检索
@@ -164,7 +164,7 @@
 | 当前用途 | 月度销售简报、收入、销量、均价等经营兑现信号 |
 | 固化数据集优先 | `product/data/validated/stock_monthly_operating_data/`，待建立 |
 | 主来源 | 公司公告、交易所公告、巨潮资讯 |
-| 校验来源 | 东方财富 `mx-search`、权威财经网站 |
+| 校验来源 | 东方财富 `mx-finance-search`、权威财经网站 |
 | 更新频率 | 按公司披露节奏，通常月度 |
 | 时间口径 | 披露月份 / 经营月份必须区分 |
 | 单位口径 | 按公告原文保留，结构化时统一收入为亿元、销量按公告口径 |

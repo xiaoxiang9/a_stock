@@ -22,6 +22,10 @@ def _normalize_source_name(source_name: str) -> str:
         return "tushare"
     if "akshare" in normalized or normalized in {"ak", "ak-share"}:
         return "akshare"
+    if "mx-finance-data" in normalized:
+        return "mx-data"
+    if "mx-finance-search" in normalized:
+        return "mx-search"
     if "mx-data" in normalized or "妙想" in normalized and "搜索" not in normalized and "search" not in normalized:
         return "mx-data"
     if "mx-search" in normalized or "妙想" in normalized and ("搜索" in normalized or "search" in normalized):
@@ -130,6 +134,8 @@ class DataAcquisitionAgent:
         source_order = list(need.preferred_sources or [
                 "tushare",
                 "akshare",
+                "mx-finance-data",
+                "mx-finance-search",
                 "mx-data",
                 "mx-search",
                 "websearch-deepseek",

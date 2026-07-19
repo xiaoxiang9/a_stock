@@ -1,7 +1,8 @@
 """公告和经营数据检索能力。
 
 职责：
-- 读取本地 mx-search 缓存结果。
+- 优先调用仓库固化的 `mx-finance-search` 技能获取资讯摘要。
+- 在新 skill 不可用时，继续读取本地 mx-search 缓存结果作为兼容兜底。
 - 将原始搜索结果压缩为带日期、来源和标题的摘要行。
 - 支持按公司名称和关键词参数化查询，避免绑定单一标的。
 
@@ -16,6 +17,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from product.data.adapters.mx_skills import query_mx_finance_news_summary
 
 DEFAULT_MX_OUTPUT_DIR = Path.home() / ".openclaw" / "workspace" / "mx_data" / "output"
 
@@ -130,13 +132,15 @@ def get_signal_data(
     base_dir: Path = DEFAULT_MX_OUTPUT_DIR,
 ) -> dict[str, list[str]]:
     """获取个股公告和月度经营数据摘要。"""
-    announcement_lines = _load_latest_cached_signal_lines(
+    news_query_announcement = f"{company_name} 最新公告 重大事项"
+    news_query_sales = f"{company_name} 销售简报 月度经营数据"
+    announcement_lines = query_mx_finance_news_summary(news_query_announcement, limit=3) or _load_latest_cached_signal_lines(
         [f"mx_search_*{company_name}*公告*.txt", f"mx_search_*{company_name}*销售简报*.txt"],
         base_dir=base_dir,
         limit=3,
         title_keywords=["公告", "决议"],
     )
-    sales_brief_lines = _load_latest_cached_signal_lines(
+    sales_brief_lines = query_mx_finance_news_summary(news_query_sales, limit=3) or _load_latest_cached_signal_lines(
         [f"mx_search_*{company_name}*销售简报*.txt", f"mx_search_*{company_name}*公告*.txt"],
         base_dir=base_dir,
         limit=3,

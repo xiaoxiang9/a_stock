@@ -17,8 +17,8 @@
 | Skill | 类型 | 当前状态 | 用途 | 依赖配置 | 备注 |
 | --- | --- | --- | --- | --- | --- |
 | `tushare` | 外部数据 skill | 约定优先 / 已使用 | A 股行情、估值、财务、趋势数据的主数据来源 | `TUSHARE_TOKEN` | 当前日报通过 Tushare Python 接口固化获取，仓库内已同步 `skills/released/tushare/` 副本 |
-| `mx-data` | 东方财富妙想 skill | 已使用 | 股票行情、估值、财务等数据二次校验 | `MX_APIKEY` | 作为 Tushare 后的校验来源，仓库内已同步 `skills/released/mx-data/` 副本 |
-| `mx-search` | 东方财富妙想 skill | 已使用 | 公告、新闻、政策、事件、研报等金融场景搜索 | `MX_APIKEY` | 用于个股异动、公告、月度销售简报等信息补充，仓库内已同步 `skills/released/mx-search/` 副本 |
+| `mx-finance-data` | 东方财富妙想 skill | 已使用 | 股票行情、估值、财务等数据二次校验 | `MX_APIKEY` | 作为 Tushare 后的校验来源，仓库内已同步 `skills/released/mx-finance-data/` 副本；`mx-data` 作为迁移期兼容别名保留 |
+| `mx-finance-search` | 东方财富妙想 skill | 已使用 | 公告、新闻、政策、事件、研报等金融场景搜索 | `MX_APIKEY` | 用于个股异动、公告、月度销售简报等信息补充，仓库内已同步 `skills/released/mx-finance-search/` 副本；`mx-search` 作为迁移期兼容别名保留 |
 | `mx-xuangu` | 东方财富妙想 skill | 候选 / 备用 | 选股、板块筛选、行业成分股查询 | `MX_APIKEY` | 后续构建好公司发现流程时可接入 |
 | `mx-zixuan` | 东方财富妙想 skill | 候选 / 备用 | 自选股查询、添加、删除 | `MX_APIKEY` | 当前尚未作为核心链路 |
 | `mx-moni` | 东方财富妙想 skill | 候选 / 备用 | 模拟组合管理 | `MX_APIKEY` | 后续若做组合/仓位模拟再评估 |
@@ -48,7 +48,7 @@
 
 - `skills/candidates/eastmoney_miaoxiang.md`
 
-当前不保留妙想下载包和解压目录，避免把第三方安装产物纳入正式项目结构。
+当前已将新版妙想 skill 固化进仓库 `skills/released/`，同时保留旧名兼容层，避免把第三方安装产物直接纳入正式项目结构。
 
 ## 5. 后续可能沉淀的项目自有 skill
 
@@ -75,6 +75,11 @@
 为了支持 git 管理和服务器快速部署，以下 skill 已固化到仓库内：
 
 - `skills/released/tushare/`
+- `skills/released/mx-finance-data/`
+- `skills/released/mx-finance-search/`
+
+兼容说明：
+
 - `skills/released/mx-data/`
 - `skills/released/mx-search/`
 
