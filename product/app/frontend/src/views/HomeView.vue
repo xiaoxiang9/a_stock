@@ -5,17 +5,60 @@
  * 职责：
  * - 展示项目定位、能力模块入口和服务在线状态。
  * - 读取 ETF 决策模块快照，作为首页预览。
+ * - 提供手动触发每日复盘邮件的入口与轻量表单。
  *
  * 边界：
- * - 首页只做轻量预览，不展示完整指标解释和投资规则细节。
+ * - 首页只做轻量预览和手动触发，不展示完整指标解释和投资规则细节。
  */
 import { onMounted, ref } from 'vue'
 import { apiUrl } from '../config/project.js'
 
 const serviceStatus = ref('connecting')
 const moduleData = ref(null)
+const manualMailDefaultsLoading = ref(false)
+const manualMailSubmitting = ref(false)
+const manualMailOpen = ref(false)
+const manualMailError = ref('')
+const manualMailFeedback = ref('')
+const manualMailResult = ref(null)
+const manualMailForm = ref({
+  report_date: '',
+  recipient: '',
+})
 
-onMounted(async () => {
+function buildShanghaiDate() {
+  // 默认日期按上海时区计算，避免浏览器本地时区和后端日期口径不一致。
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Shanghai',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  })
+  const parts = formatter.formatToParts(new Date())
+  const values = Object.fromEntries(parts.filter((part) => part.type !== 'literal').map((part) => [part.type, part.value]))
+  return `${values.year}-${values.month}-${values.day}`
+}
+
+async function loadManualMailDefaults() {
+  // 默认值来自后端配置，前端只做展示和用户确认，不维护收件人口径。
+  manualMailDefaultsLoading.value = true
+  try {
+    const response = await fetch(apiUrl('/reports/muyuan/daily/defaults'))
+    if (response.ok) {
+      const payload = await response.json()
+      manualMailForm.value.report_date = manualMailForm.value.report_date || payload.report_date || buildShanghaiDate()
+      manualMailForm.value.recipient = manualMailForm.value.recipient || payload.recipient || ''
+      return
+    }
+  } catch {
+    // 兜底到本地计算日期与空收件人，避免接口不可用时阻断首页。
+  } finally {
+    manualMailDefaultsLoading.value = false
+  }
+  manualMailForm.value.report_date = manualMailForm.value.report_date || buildShanghaiDate()
+}
+
+async function loadHomeData() {
   // 首页只做轻量探活和模块快照预览，完整决策明细放到模块页。
   try {
     const [healthResponse, moduleResponse] = await Promise.all([
@@ -27,6 +70,57 @@ onMounted(async () => {
   } catch {
     serviceStatus.value = 'offline'
   }
+}
+
+function openManualMailDialog() {
+  manualMailError.value = ''
+  manualMailFeedback.value = ''
+  manualMailOpen.value = true
+  if (!manualMailForm.value.report_date) {
+    manualMailForm.value.report_date = buildShanghaiDate()
+  }
+  if (!manualMailForm.value.recipient && !manualMailDefaultsLoading.value) {
+    void loadManualMailDefaults()
+  }
+}
+
+async function sendManualMail() {
+  // 手动发送只负责把用户选择提交给后端，分析和发信仍由后端工作流完成。
+  manualMailError.value = ''
+  manualMailFeedback.value = ''
+  manualMailSubmitting.value = true
+  try {
+    const response = await fetch(apiUrl('/reports/muyuan/daily/send'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        report_date: manualMailForm.value.report_date,
+        recipient: manualMailForm.value.recipient,
+      }),
+    })
+    const payload = await response.json().catch(() => ({}))
+    if (!response.ok) {
+      throw new Error(payload.detail || `HTTP ${response.status}`)
+    }
+    manualMailResult.value = {
+      report_date: payload.report_date || manualMailForm.value.report_date,
+      recipient: payload.recipient || manualMailForm.value.recipient,
+      subject: payload.subject || '',
+      valuation_rounds: payload.valuation_rounds ?? null,
+      valuation_termination_reason: payload.valuation_termination_reason || '',
+      output_path: payload.output_path || '',
+    }
+    manualMailFeedback.value = `已触发 ${manualMailResult.value.report_date} 的复盘邮件，发送至 ${manualMailResult.value.recipient}。`
+    manualMailOpen.value = false
+  } catch (error) {
+    manualMailError.value = error instanceof Error ? error.message : '手动发送失败'
+  } finally {
+    manualMailSubmitting.value = false
+  }
+}
+
+onMounted(async () => {
+  await Promise.all([loadHomeData(), loadManualMailDefaults()])
 })
 </script>
 
@@ -35,9 +129,51 @@ onMounted(async () => {
     <div class="eyebrow"><span></span> INVESTMENT INTELLIGENCE</div>
     <h1>把市场噪音，<br><em>变成决策信号。</em></h1>
     <p class="lead">面向专业投资团队的模块化决策平台。每一个结论，都由明确规则、官方数据与可追溯方法支撑。</p>
-    <a class="primary hero-cta" href="#/etf-buy-decision">
-      进入首个决策模块 <span aria-hidden="true">→</span>
-    </a>
+    <div class="hero-actions">
+      <a class="primary hero-cta" href="#/etf-buy-decision">
+        进入首个决策模块 <span aria-hidden="true">→</span>
+      </a>
+      <button class="secondary hero-cta" type="button" @click="openManualMailDialog">
+        <span aria-hidden="true">✉</span>
+        手动发送复盘邮件
+      </button>
+    </div>
+    <p v-if="manualMailFeedback" class="hero-feedback">{{ manualMailFeedback }}</p>
+    <div v-if="manualMailResult" class="manual-mail-result" aria-live="polite">
+      <div class="manual-mail-result__header">
+        <div>
+          <p class="section-label">LATEST TRIGGER</p>
+          <h3>最近一次发送结果</h3>
+        </div>
+        <span class="manual-mail-result__status">已触发</span>
+      </div>
+      <div class="manual-mail-result__grid">
+        <div>
+          <span>报告日期</span>
+          <strong>{{ manualMailResult.report_date }}</strong>
+        </div>
+        <div>
+          <span>收件人</span>
+          <strong>{{ manualMailResult.recipient }}</strong>
+        </div>
+        <div>
+          <span>邮件主题</span>
+          <strong>{{ manualMailResult.subject || '—' }}</strong>
+        </div>
+        <div>
+          <span>估值循环</span>
+          <strong>{{ manualMailResult.valuation_rounds ?? '—' }}</strong>
+        </div>
+        <div>
+          <span>终止原因</span>
+          <strong>{{ manualMailResult.valuation_termination_reason || '—' }}</strong>
+        </div>
+        <div>
+          <span>输出路径</span>
+          <strong>{{ manualMailResult.output_path || '—' }}</strong>
+        </div>
+      </div>
+    </div>
     <div class="service-line" :class="serviceStatus">
       <i></i>
       {{ serviceStatus === 'online' ? '决策引擎在线' : '等待决策引擎' }}
@@ -89,4 +225,39 @@ onMounted(async () => {
       <article><span>03</span><h3>模块演进</h3><p>将研究能力沉淀为独立模块，持续验证、复盘与迭代。</p></article>
     </div>
   </section>
+
+  <div v-if="manualMailOpen" class="dialog-mask" @click.self="manualMailOpen = false">
+    <section class="dialog-card" role="dialog" aria-modal="true" aria-labelledby="manual-mail-title">
+      <header class="dialog-header">
+        <div>
+          <p class="section-label">MANUAL REVIEW</p>
+          <h3 id="manual-mail-title">手动发送每日复盘邮件</h3>
+        </div>
+        <button class="dialog-close" type="button" aria-label="关闭" @click="manualMailOpen = false">×</button>
+      </header>
+
+      <p class="dialog-intro">选择报告日期和收件人后，后端会重新生成当日复盘并发送邮件。</p>
+
+      <div class="dialog-form">
+        <label>
+          <span>报告日期</span>
+          <input v-model="manualMailForm.report_date" type="date" />
+        </label>
+        <label>
+          <span>收件人</span>
+          <input v-model="manualMailForm.recipient" type="email" placeholder="默认收件人" />
+        </label>
+      </div>
+
+      <div v-if="manualMailError" class="dialog-alert error">{{ manualMailError }}</div>
+
+      <div class="dialog-actions">
+        <button class="secondary" type="button" @click="manualMailOpen = false">取消</button>
+        <button class="primary" type="button" :disabled="manualMailSubmitting || manualMailDefaultsLoading" @click="sendManualMail">
+          <span v-if="manualMailSubmitting" class="spinning">↻</span>
+          {{ manualMailSubmitting ? '发送中' : (manualMailDefaultsLoading ? '加载默认值' : '确认发送') }}
+        </button>
+      </div>
+    </section>
+  </div>
 </template>

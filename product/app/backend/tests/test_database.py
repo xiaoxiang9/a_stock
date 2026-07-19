@@ -260,5 +260,98 @@ password = "astock-local-password"
         self.assertIn("O''Reilly", kwargs["input"])
 
 
+class ManualDailyReportApiTests(unittest.TestCase):
+    """手动触发每日复盘邮件接口测试。"""
+
+    def test_daily_report_defaults_endpoint_returns_today_and_recipient(self) -> None:
+        """验证默认值接口会返回日期和默认收件人。"""
+        fake_scheduler = type(
+            "FakeScheduler",
+            (),
+            {
+                "running": False,
+                "start": AsyncMock(),
+                "stop": AsyncMock(),
+            },
+        )()
+        fake_database = type(
+            "FakeDatabase",
+            (),
+            {
+                "connected": False,
+                "connect": unittest.mock.Mock(),
+                "ping": unittest.mock.Mock(),
+                "run_demo_round_trip": unittest.mock.Mock(return_value={"inserted": 1, "total_rows": 1}),
+                "close": unittest.mock.Mock(),
+            },
+        )()
+
+        with patch("product.app.backend.app.main.create_report_scheduler", return_value=fake_scheduler), patch(
+            "product.app.backend.app.main.build_mysql_client", return_value=fake_database
+        ):
+            with TestClient(app) as client:
+                response = client.get("/api/reports/muyuan/daily/defaults")
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertRegex(payload["report_date"], r"^\d{4}-\d{2}-\d{2}$")
+        self.assertTrue(payload["recipient"])
+
+    def test_daily_report_send_endpoint_triggers_workflow_with_user_selection(self) -> None:
+        """验证手动发送接口会把用户选择传给日报工作流。"""
+        fake_scheduler = type(
+            "FakeScheduler",
+            (),
+            {
+                "running": False,
+                "start": AsyncMock(),
+                "stop": AsyncMock(),
+            },
+        )()
+        fake_database = type(
+            "FakeDatabase",
+            (),
+            {
+                "connected": False,
+                "connect": unittest.mock.Mock(),
+                "ping": unittest.mock.Mock(),
+                "run_demo_round_trip": unittest.mock.Mock(return_value={"inserted": 1, "total_rows": 1}),
+                "close": unittest.mock.Mock(),
+            },
+        )()
+
+        workflow_result = (
+            Path("/tmp/muyuan-daily.md"),
+            "markdown body",
+            {
+                "valuation_trace": [1, 2],
+                "valuation_termination_reason": "complete",
+            },
+        )
+
+        with patch("product.app.backend.app.main.create_report_scheduler", return_value=fake_scheduler), patch(
+            "product.app.backend.app.main.build_mysql_client", return_value=fake_database
+        ), patch(
+            "product.app.backend.app.main.run_report_workflow_async", AsyncMock(return_value=workflow_result)
+        ) as mock_workflow:
+            with TestClient(app) as client:
+                response = client.post(
+                    "/api/reports/muyuan/daily/send",
+                    json={"report_date": "2026-07-18", "recipient": "alice@example.com"},
+                )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["status"], "ok")
+        self.assertEqual(payload["report_date"], "2026-07-18")
+        self.assertEqual(payload["recipient"], "alice@example.com")
+        self.assertEqual(payload["valuation_rounds"], 2)
+        mock_workflow.assert_awaited_once_with(
+            report_date="2026-07-18",
+            force=True,
+            recipient="alice@example.com",
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

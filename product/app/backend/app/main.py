@@ -12,12 +12,15 @@
 """
 
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 
+from product.app.backend.application.reports.muyuan_nightly import build_email_subject, run_report_workflow_async
 from product.app.backend.infrastructure.market_data.market_data import get_etf_buy_decision
 from product.app.backend.infrastructure.database import build_mysql_client
 from product.app.backend.infrastructure.config.private_config import load_private_config
@@ -30,12 +33,20 @@ from product.app.backend.infrastructure.config.project_config import load_projec
 
 
 PROJECT_CONFIG = load_project_config()
+SHANGHAI_TZ = ZoneInfo("Asia/Shanghai")
 
 
 class DatabaseDemoRequest(BaseModel):
     """数据库示例请求体。"""
 
     note: str = "hello"
+
+
+class ManualDailyReportRequest(BaseModel):
+    """手动复盘邮件触发请求体。"""
+
+    report_date: str = ""
+    recipient: str = ""
 
 
 def _resolve_project_root() -> Path:
@@ -53,6 +64,11 @@ def create_report_scheduler() -> DailyReportScheduler:
         schedule=DailySchedule(hour=PROJECT_CONFIG.launchd.hour, minute=PROJECT_CONFIG.launchd.minute),
         lock_path=REPORT_SCHEDULER_LOCK,
     )
+
+
+def _today_in_shanghai() -> str:
+    """返回上海时区的自然日字符串。"""
+    return datetime.now(timezone.utc).astimezone(SHANGHAI_TZ).date().isoformat()
 
 
 @asynccontextmanager
@@ -139,6 +155,46 @@ async def database_demo(payload: DatabaseDemoRequest, request: Request) -> dict[
         return database.run_demo_round_trip(note=payload.note)
     except Exception as exc:
         raise HTTPException(status_code=503, detail=f"Database demo failed: {exc}") from exc
+
+
+@app.get("/api/reports/muyuan/daily/defaults")
+async def daily_report_defaults() -> dict[str, str]:
+    """返回手动触发每日复盘邮件时的默认参数。"""
+    return {
+        "report_date": _today_in_shanghai(),
+        "recipient": PROJECT_CONFIG.email.recipient,
+    }
+
+
+@app.post("/api/reports/muyuan/daily/send")
+async def send_daily_report(payload: ManualDailyReportRequest) -> dict[str, object]:
+    """手动触发一次牧原股份每日复盘邮件。
+
+    这里直接复用日报工作流，代码只负责接收用户选择、调用工作流并返回执行结果。
+    """
+    report_date = payload.report_date.strip() or _today_in_shanghai()
+    recipient = payload.recipient.strip() or PROJECT_CONFIG.email.recipient
+    if not recipient:
+        raise HTTPException(status_code=400, detail="Recipient is required")
+    try:
+        output_path, _, report_context = await run_report_workflow_async(
+            report_date=report_date,
+            force=True,
+            recipient=recipient,
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"Daily report send failed: {exc}") from exc
+
+    valuation_trace = report_context.get("valuation_trace", []) or []
+    return {
+        "status": "ok",
+        "report_date": report_date,
+        "recipient": recipient,
+        "subject": build_email_subject(report_date),
+        "output_path": str(output_path),
+        "valuation_rounds": len(valuation_trace),
+        "valuation_termination_reason": report_context.get("valuation_termination_reason", ""),
+    }
 
 
 @app.get("/api/modules/etf-buy-decision")
