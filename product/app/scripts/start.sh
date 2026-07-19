@@ -9,7 +9,9 @@
 
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "$0")/../../.." && pwd)"
+# 直接执行时用 `$0`，被 source 时用 `BASH_SOURCE[0]`，保证测试和运行都能拿到脚本自身路径。
+SCRIPT_PATH="${BASH_SOURCE[0]:-$0}"
+ROOT_DIR="$(cd "$(dirname "$SCRIPT_PATH")/../../.." && pwd)"
 BACKEND_DIR="$ROOT_DIR/product/app/backend"
 FRONTEND_DIR="$ROOT_DIR/product/app/frontend"
 BACKEND_PYTHON="$BACKEND_DIR/.venv/bin/python"
@@ -213,11 +215,55 @@ stop_listening_processes() {
   done
 }
 
+list_listening_pids() {
+  # 列出指定端口当前的监听进程 PID。
+  local port="$1"
+  lsof -nP -iTCP:"$port" -sTCP:LISTEN -t 2>/dev/null || true
+}
+
+force_release_listening_port() {
+  # 强制释放指定端口，确保旧服务不会占住后续启动位置。
+  local label="$1"
+  local port="$2"
+  local pid=""
+  local remaining_pids=""
+
+  remaining_pids="$(list_listening_pids "$port")"
+  if [ -z "$remaining_pids" ]; then
+    return 0
+  fi
+
+  info "检测到占用端口 ${port} 的已有${label}服务，正在强制释放…"
+  for pid in $remaining_pids; do
+    kill_process_tree "$pid"
+  done
+
+  for _ in 1 2 3; do
+    remaining_pids="$(list_listening_pids "$port")"
+    if [ -z "$remaining_pids" ]; then
+      return 0
+    fi
+    for pid in $remaining_pids; do
+      kill -9 "$pid" 2>/dev/null || true
+    done
+    sleep 1
+  done
+
+  remaining_pids="$(list_listening_pids "$port")"
+  if [ -n "$remaining_pids" ]; then
+    error "${label} 端口 ${port} 仍被占用，无法继续启动：${remaining_pids}"
+    exit 1
+  fi
+}
+
 pause_existing_project() {
+  # 先回收由本项目启动的旧实例，再强制清理对应端口。
   stop_pid_file "后端" "$BACKEND_PID_FILE"
   stop_pid_file "前端" "$FRONTEND_PID_FILE"
   stop_listening_processes "后端" 8000 command_matches_backend
   stop_listening_processes "前端" 5173 command_matches_frontend
+  force_release_listening_port "后端" 8000
+  force_release_listening_port "前端" 5173
 }
 
 collect_errors() {
@@ -293,24 +339,26 @@ wait_until_ready() {
   fi
 }
 
-trap cleanup INT TERM EXIT
+if [ "${ASTOCK_APP_START_SH_SOURCE_ONLY:-0}" != "1" ]; then
+  trap cleanup INT TERM EXIT
 
-check_preflight
-ensure_mysql_runtime
-pause_existing_project
-start_backend
-start_frontend
-wait_until_ready
+  check_preflight
+  ensure_mysql_runtime
+  pause_existing_project
+  start_backend
+  start_frontend
+  wait_until_ready
 
-printf '\n'
-info "启动成功："
-printf '  前端页面：\033[4mhttp://127.0.0.1:5173\033[0m\n'
-printf '  API 文档：\033[4mhttp://127.0.0.1:8000/docs\033[0m\n'
-printf '  按 Ctrl+C 同时停止前后端。\n\n'
+  printf '\n'
+  info "启动成功："
+  printf '  前端页面：\033[4mhttp://127.0.0.1:5173\033[0m\n'
+  printf '  API 文档：\033[4mhttp://127.0.0.1:8000/docs\033[0m\n'
+  printf '  按 Ctrl+C 同时停止前后端。\n\n'
 
-while kill -0 "$BACKEND_PID" 2>/dev/null && kill -0 "$FRONTEND_PID" 2>/dev/null; do
-  sleep 1
-done
+  while kill -0 "$BACKEND_PID" 2>/dev/null && kill -0 "$FRONTEND_PID" 2>/dev/null; do
+    sleep 1
+  done
 
-error "有一个服务意外退出，正在关闭另一个服务。"
-exit 1
+  error "有一个服务意外退出，正在关闭另一个服务。"
+  exit 1
+fi
