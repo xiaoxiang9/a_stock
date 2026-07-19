@@ -324,7 +324,35 @@ class ManualDailyReportApiTests(unittest.TestCase):
             Path("/tmp/muyuan-daily.md"),
             "markdown body",
             {
-                "valuation_trace": [1, 2],
+                "valuation_trace": [
+                    {
+                        "round_index": 1,
+                        "valuation_status": "need_more_data",
+                        "valuation_summary": "first round",
+                        "data_needs": ["PE", "PB"],
+                        "prefill_notes": ["prefill"],
+                        "notes": ["need more"],
+                        "acquisition_attempts": [
+                            {
+                                "need_title": "PE",
+                                "provider_name": "tushare",
+                                "status": "success",
+                                "evidence_count": 2,
+                                "query": "PE",
+                                "message": "ok",
+                            }
+                        ],
+                    },
+                    {
+                        "round_index": 2,
+                        "valuation_status": "converged",
+                        "valuation_summary": "second round",
+                        "data_needs": [],
+                        "prefill_notes": [],
+                        "notes": [],
+                        "acquisition_attempts": [],
+                    }
+                ],
                 "valuation_termination_reason": "complete",
             },
         )
@@ -346,6 +374,7 @@ class ManualDailyReportApiTests(unittest.TestCase):
         self.assertEqual(payload["report_date"], "2026-07-18")
         self.assertEqual(payload["recipient"], "alice@example.com")
         self.assertEqual(payload["valuation_rounds"], 2)
+        self.assertEqual(payload["valuation_trace"][0]["acquisition_attempts"][0]["provider_name"], "tushare")
         mock_workflow.assert_awaited_once_with(
             report_date="2026-07-18",
             force=True,

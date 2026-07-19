@@ -53,6 +53,21 @@ body::before { content: ''; position: fixed; inset: 0; pointer-events: none; bac
 .manual-mail-result__grid > div { min-width: 0; padding: 14px 15px; background: rgba(10, 15, 20, .82); border: 1px solid #232c35; border-radius: 12px; }
 .manual-mail-result__grid span { display: block; margin-bottom: 10px; color: #6c7683; font-size: 10px; letter-spacing: .12em; }
 .manual-mail-result__grid strong { display: block; color: #eef3f7; font-size: 13px; line-height: 1.55; word-break: break-word; }
+.manual-mail-trace { margin-top: 18px; padding-top: 18px; border-top: 1px solid #232c35; }
+.manual-mail-trace__header h4 { margin: 8px 0 0; color: #eef3f7; font-size: 18px; letter-spacing: -.03em; }
+.manual-mail-trace__round { margin-top: 14px; padding: 16px; background: rgba(10, 15, 20, .72); border: 1px solid #232c35; border-radius: 14px; }
+.manual-mail-trace__round-head { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+.manual-mail-trace__round-head strong { color: #eef3f7; font-size: 14px; }
+.manual-mail-trace__round-head span { color: #61dda0; font: 10px ui-monospace, monospace; letter-spacing: .12em; }
+.manual-mail-trace__summary { margin: 10px 0 0; color: #d0d8df; font-size: 13px; line-height: 1.6; }
+.manual-mail-trace__meta { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px; }
+.manual-mail-trace__meta span { padding: 5px 8px; color: #85909b; background: rgba(255, 255, 255, .03); border: 1px solid #27313a; border-radius: 999px; font-size: 11px; line-height: 1.4; }
+.manual-mail-trace__attempts { margin-top: 12px; display: grid; gap: 10px; }
+.manual-mail-trace__attempt { padding: 12px 13px; background: rgba(255, 255, 255, .03); border: 1px solid #27313a; border-radius: 12px; }
+.manual-mail-trace__attempt-top { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+.manual-mail-trace__attempt-top strong { color: #e8edf4; font-size: 12px; }
+.manual-mail-trace__attempt-top span { color: #8dd7ad; font: 10px ui-monospace, monospace; letter-spacing: .12em; }
+.manual-mail-trace__attempt-body { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 8px 14px; color: #9aa4af; font-size: 11px; line-height: 1.5; }
 .service-line { margin-top: 66px; display: flex; align-items: center; gap: 10px; color: #b8c0ca; font-size: 11px; }
 .service-line span { color: #596473; margin-left: 8px; }
 .service-line.offline i { background: #e4a758; box-shadow: 0 0 10px #e4a758; }
@@ -191,6 +206,7 @@ footer { height: 88px; border-top: 1px solid #1c232c; display: flex; align-items
   .manual-mail-result { padding: 18px 18px 20px; }
   .manual-mail-result__header { flex-direction: column; }
   .manual-mail-result__grid { grid-template-columns: 1fr; }
+  .manual-mail-trace__round-head, .manual-mail-trace__attempt-top { flex-direction: column; align-items: flex-start; }
   .service-line { align-items: flex-start; flex-wrap: wrap; }.service-line span { width: 100%; margin-left: 16px; }
   .module-section, .principles { padding: 74px 0 80px; }
   .module-entry { padding: 28px; grid-template-columns: 1fr; }.module-index { display: none; }.module-arrow { display: none; }
@@ -231,6 +247,17 @@ body::before { background: linear-gradient(rgba(24,43,56,.035) 1px, transparent 
 .manual-mail-result__grid > div { background: #f7f9f9; border-color: #dfe5e8; }
 .manual-mail-result__grid span { color: #839099; }
 .manual-mail-result__grid strong { color: #17212b; }
+.manual-mail-trace { border-color: #dbe2e5; }
+.manual-mail-trace__header h4 { color: #17212b; }
+.manual-mail-trace__round { background: #f7f9f9; border-color: #dfe5e8; }
+.manual-mail-trace__round-head strong { color: #17212b; }
+.manual-mail-trace__round-head span { color: #138354; }
+.manual-mail-trace__summary { color: #47545f; }
+.manual-mail-trace__meta span { color: #66737e; background: #fff; border-color: #dfe5e8; }
+.manual-mail-trace__attempt { background: #fff; border-color: #dfe5e8; }
+.manual-mail-trace__attempt-top strong { color: #17212b; }
+.manual-mail-trace__attempt-top span { color: #138354; }
+.manual-mail-trace__attempt-body { color: #66737e; }
 .service-line { color: #33414c; }.service-line span { color: #84909a; }
 .module-section, .principles, footer { border-color: #dfe5e8; }
 .section-label, .module-count { color: #87939c; }

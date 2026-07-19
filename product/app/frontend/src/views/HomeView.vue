@@ -21,6 +21,7 @@ const manualMailOpen = ref(false)
 const manualMailError = ref('')
 const manualMailFeedback = ref('')
 const manualMailResult = ref(null)
+const manualMailTrace = ref([])
 const manualMailForm = ref({
   report_date: '',
   recipient: '',
@@ -75,6 +76,8 @@ async function loadHomeData() {
 function openManualMailDialog() {
   manualMailError.value = ''
   manualMailFeedback.value = ''
+  manualMailResult.value = null
+  manualMailTrace.value = []
   manualMailOpen.value = true
   if (!manualMailForm.value.report_date) {
     manualMailForm.value.report_date = buildShanghaiDate()
@@ -110,6 +113,7 @@ async function sendManualMail() {
       valuation_termination_reason: payload.valuation_termination_reason || '',
       output_path: payload.output_path || '',
     }
+    manualMailTrace.value = Array.isArray(payload.valuation_trace) ? payload.valuation_trace : []
     manualMailFeedback.value = `已触发 ${manualMailResult.value.report_date} 的复盘邮件，发送至 ${manualMailResult.value.recipient}。`
     manualMailOpen.value = false
   } catch (error) {
@@ -171,6 +175,38 @@ onMounted(async () => {
         <div>
           <span>输出路径</span>
           <strong>{{ manualMailResult.output_path || '—' }}</strong>
+        </div>
+      </div>
+      <div class="manual-mail-trace" v-if="manualMailTrace.length">
+        <div class="manual-mail-trace__header">
+          <p class="section-label">DATA PATH</p>
+          <h4>数据获取轮次与路径明细</h4>
+        </div>
+        <div v-for="round in manualMailTrace" :key="round.round_index" class="manual-mail-trace__round">
+          <div class="manual-mail-trace__round-head">
+            <strong>第 {{ round.round_index }} 轮</strong>
+            <span>{{ round.valuation_status || '—' }}</span>
+          </div>
+          <p class="manual-mail-trace__summary">{{ round.valuation_summary || '—' }}</p>
+          <div class="manual-mail-trace__meta">
+            <span v-if="round.prefill_notes?.length">预填：{{ round.prefill_notes.join('；') }}</span>
+            <span v-if="round.data_needs?.length">数据诉求：{{ round.data_needs.join('、') }}</span>
+            <span v-if="round.notes?.length">本轮备注：{{ round.notes.join('；') }}</span>
+          </div>
+          <div v-if="round.acquisition_attempts?.length" class="manual-mail-trace__attempts">
+            <div v-for="attempt in round.acquisition_attempts" :key="`${round.round_index}-${attempt.need_title}-${attempt.provider_name}`" class="manual-mail-trace__attempt">
+              <div class="manual-mail-trace__attempt-top">
+                <strong>{{ attempt.need_title }}</strong>
+                <span>{{ attempt.provider_name }}</span>
+              </div>
+              <div class="manual-mail-trace__attempt-body">
+                <span>状态：{{ attempt.status }}</span>
+                <span>证据数：{{ attempt.evidence_count }}</span>
+                <span v-if="attempt.query">查询：{{ attempt.query }}</span>
+                <span v-if="attempt.message">说明：{{ attempt.message }}</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

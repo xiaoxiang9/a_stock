@@ -194,6 +194,7 @@ async def send_daily_report(payload: ManualDailyReportRequest) -> dict[str, obje
         "output_path": str(output_path),
         "valuation_rounds": len(valuation_trace),
         "valuation_termination_reason": report_context.get("valuation_termination_reason", ""),
+        "valuation_trace": valuation_trace,
     }
 
 

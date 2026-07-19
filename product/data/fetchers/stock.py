@@ -325,7 +325,13 @@ def get_eastmoney_snapshot(
     skill_script: Path | None = None,
 ) -> dict[str, float] | None:
     """调用东方财富 mx-data skill 获取个股校验数据。"""
-    script = skill_script or (Path.home() / ".codex" / "skills" / "mx-data" / "mx_data.py")
+    if skill_script is not None:
+        script = skill_script
+    else:
+        repo_root = Path(__file__).resolve().parents[3]
+        repo_skill_script = repo_root / "skills" / "released" / "mx-data" / "mx_data.py"
+        home_skill_script = Path.home() / ".codex" / "skills" / "mx-data" / "mx_data.py"
+        script = repo_skill_script if repo_skill_script.exists() else home_skill_script
     if not script.exists():
         return None
     result = subprocess.run(

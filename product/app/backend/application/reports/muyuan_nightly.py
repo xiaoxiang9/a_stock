@@ -738,6 +738,65 @@ def render_valuation_card_html(valuation_result: ValuationResult | None) -> str:
     )
 
 
+def _sanitize_markdown_cell(value: Any) -> str:
+    """清理 Markdown 表格单元格中的换行和分隔符。"""
+    text = str(value).replace("\n", " ").replace("|", "/").strip()
+    return text or "暂无"
+
+
+def render_valuation_trace_markdown(valuation_trace: list[dict[str, Any]] | None) -> str:
+    """把估值多轮补数路径渲染成 Markdown 章节。
+
+    这里只记录确定性的轮次、证据获取路径和结果摘要，便于邮件和首页对齐同一份执行轨迹。
+    """
+    valuation_trace = valuation_trace or []
+    if not valuation_trace:
+        return "## 13. 数据获取轮次与路径\n\n- 本次未进入估值补数闭环。\n"
+
+    parts = ["## 13. 数据获取轮次与路径", ""]
+    for round_item in valuation_trace:
+        round_index = round_item.get("round_index", "—")
+        valuation_status = _sanitize_markdown_cell(round_item.get("valuation_status", "—"))
+        valuation_summary = _sanitize_markdown_cell(round_item.get("valuation_summary", "—"))
+        parts.append(f"### 第 {round_index} 轮")
+        parts.append("")
+        parts.append(f"- 估值状态：{valuation_status}")
+        parts.append(f"- 估值摘要：{valuation_summary}")
+        prefill_notes = round_item.get("prefill_notes", []) or []
+        data_needs = round_item.get("data_needs", []) or []
+        notes = round_item.get("notes", []) or []
+        if prefill_notes:
+            parts.append(f"- 预填信息：{_sanitize_markdown_cell('；'.join(prefill_notes))}")
+        if data_needs:
+            parts.append(f"- 数据诉求：{_sanitize_markdown_cell('、'.join(data_needs))}")
+        if notes:
+            parts.append(f"- 本轮备注：{_sanitize_markdown_cell('；'.join(notes))}")
+
+        acquisition_attempts = round_item.get("acquisition_attempts", []) or []
+        if acquisition_attempts:
+            parts.append("")
+            parts.append("| 诉求 | provider | 状态 | 证据数 | 查询 | 说明 |")
+            parts.append("| --- | --- | --- | --- | --- | --- |")
+            for attempt in acquisition_attempts:
+                parts.append(
+                    "| "
+                    + " | ".join(
+                        [
+                            _sanitize_markdown_cell(attempt.get("need_title", "—")),
+                            _sanitize_markdown_cell(attempt.get("provider_name", "—")),
+                            _sanitize_markdown_cell(attempt.get("status", "—")),
+                            _sanitize_markdown_cell(attempt.get("evidence_count", "—")),
+                            _sanitize_markdown_cell(attempt.get("query", "")),
+                            _sanitize_markdown_cell(attempt.get("message", "")),
+                        ]
+                    )
+                    + " |"
+                )
+        parts.append("")
+
+    return "\n".join(parts)
+
+
 def render_report_markdown(
     report_date: str,
     latest_trade_date: str,
@@ -748,6 +807,7 @@ def render_report_markdown(
     analysis: dict[str, Any] | None = None,
     valuation_request: ValuationRequest | None = None,
     valuation_result: ValuationResult | None = None,
+    valuation_trace: list[dict[str, Any]] | None = None,
 ) -> str:
     """生成完整 Markdown 日报正文。"""
     signal_data = signal_data or {}
@@ -804,6 +864,7 @@ def render_report_markdown(
 - 参考区间：暂无
 """
     )
+    valuation_trace_text = render_valuation_trace_markdown(valuation_trace)
 
     return f"""# {report_date} 牧原股份 {_report_clock_label()} 日复盘
 
@@ -830,6 +891,8 @@ def render_report_markdown(
 | 总市值 | {tushare_data['total_mv_billion']:.2f} 亿元 | Tushare | {em_total_mv} | 若差异存在，按口径差异保留展示 |
 
 {valuation_text}
+
+{valuation_trace_text}
 
 ## 5. 猪周期核心数据
 
@@ -1244,6 +1307,7 @@ def generate_report(report_date: str, force: bool = False) -> tuple[Path, str, d
         analysis=analysis,
         valuation_request=valuation_request,
         valuation_result=valuation_result,
+        valuation_trace=valuation_trace,
     )
     output_path = write_report(report_date, content, force=force)
     return output_path, content, {

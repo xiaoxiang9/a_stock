@@ -130,6 +130,56 @@ class MuyuanNightlyReportTests(unittest.TestCase):
         self.assertIn("猪周期核心数据", markdown)
         self.assertIn("现货生猪：9.37 元/公斤", markdown)
 
+    def test_render_report_includes_valuation_trace_details(self) -> None:
+        """验证日报正文会写入估值多轮补数路径和 provider 明细。"""
+        markdown = render_report_markdown(
+            report_date="2026-06-27",
+            latest_trade_date="2026-06-26",
+            tushare_data={
+                "close": 33.56,
+                "pct_chg": 3.7083,
+                "pe_ttm": 19.81,
+                "pb": 2.246,
+                "turnover_rate": 2.759,
+                "total_mv_billion": 1937.42,
+            },
+            eastmoney_data=None,
+            valuation_trace=[
+                {
+                    "round_index": 1,
+                    "valuation_status": "need_more_data",
+                    "valuation_summary": "首轮需要补充 PE 与 PB。",
+                    "prefill_notes": ["已预填市值"],
+                    "data_needs": ["PE", "PB"],
+                    "notes": ["第三轮后全渠道展开"],
+                    "acquisition_attempts": [
+                        {
+                            "need_title": "PE",
+                            "provider_name": "tushare",
+                            "status": "success",
+                            "evidence_count": 2,
+                            "query": "PE",
+                            "message": "补充 2 条证据",
+                        },
+                        {
+                            "need_title": "PB",
+                            "provider_name": "mx-data",
+                            "status": "success",
+                            "evidence_count": 1,
+                            "query": "PB",
+                            "message": "补充 1 条证据",
+                        },
+                    ],
+                }
+            ],
+        )
+
+        self.assertIn("数据获取轮次与路径", markdown)
+        self.assertIn("第 1 轮", markdown)
+        self.assertIn("tushare", markdown)
+        self.assertIn("mx-data", markdown)
+        self.assertIn("首轮需要补充 PE 与 PB", markdown)
+
 
 class EmailRenderingTests(unittest.TestCase):
     """模型配置、HTML 邮件和报告生成链路测试。"""

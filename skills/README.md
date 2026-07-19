@@ -4,6 +4,8 @@
 
 当前阶段先记录候选能力，不急于抽取。只有当能力稳定、边界清晰、跨项目复用价值高时，才进入正式 skill 化。
 
+仓库内已经固化的 `skills/released/` 目录，作为 git 管理下的可部署 skill 副本使用；代码优先读取仓库内版本，避免依赖服务器本机全局安装态。
+
 - `referenced_skills.md`：项目当前引用或约定优先使用的 skill 清单
 - `local_skill_installation.md`：本机 skill 梳理与跨机器一键安装说明
 - `candidates/`：候选 skill
