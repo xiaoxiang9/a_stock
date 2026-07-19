@@ -37,6 +37,7 @@ from product.app.backend.application.reports.muyuan_nightly import (
     load_private_config,
     load_model_runtime_config,
     parse_eastmoney_stdout,
+    _sync_private_secrets_to_runtime_env,
     render_email_html,
     render_launchd_plist,
     render_report_markdown,
@@ -1306,6 +1307,33 @@ tushare_token = "token-value"
         self.assertIs(mock_analyze.call_args.kwargs["model_service"], fake_service)
         mock_from_project_config.assert_called_once()
         mock_valuation.assert_called_once()
+
+    def test_sync_private_secrets_to_runtime_env_exports_agents_keys(self) -> None:
+        """验证日报流程会把 app 私密配置中的可复用密钥同步到进程环境。"""
+        private_config = __import__("types").SimpleNamespace(
+            raw={
+                "secrets": {
+                    "deepseek_api_key": "deepseek-secret",
+                    "tushare_token": "tushare-secret",
+                    "mx_api_key": "mx-secret",
+                    "websearch_api_key": "websearch-secret",
+                }
+            }
+        )
+
+        with patch.dict(os.environ, {"WEBSEARCH_API_KEY": "keep-existing"}, clear=True):
+            synced_env_names = _sync_private_secrets_to_runtime_env(private_config)
+
+            self.assertEqual(os.environ["DEEPSEEK_API_KEY"], "deepseek-secret")
+            self.assertEqual(os.environ["TUSHARE_TOKEN"], "tushare-secret")
+            self.assertEqual(os.environ["TS_TOKEN"], "tushare-secret")
+            self.assertEqual(os.environ["MX_APIKEY"], "mx-secret")
+            self.assertEqual(os.environ["WEBSEARCH_API_KEY"], "keep-existing")
+
+        self.assertEqual(
+            synced_env_names,
+            ["DEEPSEEK_API_KEY", "TUSHARE_TOKEN", "TS_TOKEN", "MX_APIKEY"],
+        )
 
 
 class MxSearchSummaryTests(unittest.TestCase):

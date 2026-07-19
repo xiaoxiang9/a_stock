@@ -16,6 +16,10 @@ password = ""
 [secrets]
 deepseek_api_key = ""
 tushare_token = ""
+# 可选：用于 agents 子系统的东方财富妙想补数。
+mx_api_key = ""
+# 可选：若 websearch 独立维护密钥，也可以填写在这里。
+websearch_api_key = ""
 
 [mysql]
 user = ""

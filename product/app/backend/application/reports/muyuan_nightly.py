@@ -1252,6 +1252,43 @@ def install_launch_agent(
     return plist_path
 
 
+def _sync_private_secrets_to_runtime_env(private_config: Any) -> list[str]:
+    """把 app 私密配置里可复用的密钥同步到当前进程环境。
+
+    日报主流程会先读取 `product/app/config/private.local.toml`，再把其中已经存在的
+    深度模型、Tushare 和妙想相关密钥同步到环境变量，供 `agents` 子系统的 provider
+    继续按自己的读取规则消费。
+    """
+    raw_private = getattr(private_config, "raw", {}) or {}
+    if not isinstance(raw_private, dict):
+        return []
+    raw_secrets = raw_private.get("secrets", {}) or {}
+    if not isinstance(raw_secrets, dict):
+        return []
+
+    env_candidates: dict[str, tuple[str, ...]] = {
+        "DEEPSEEK_API_KEY": ("deepseek_api_key",),
+        "TUSHARE_TOKEN": ("tushare_token",),
+        "TS_TOKEN": ("tushare_token",),
+        "MX_APIKEY": ("mx_api_key",),
+        "WEBSEARCH_API_KEY": ("websearch_api_key",),
+    }
+    synced_env_names: list[str] = []
+
+    for env_name, candidate_keys in env_candidates.items():
+        if os.environ.get(env_name):
+            continue
+        for key in candidate_keys:
+            value = str(raw_secrets.get(key, "")).strip()
+            if not value:
+                continue
+            os.environ[env_name] = value
+            synced_env_names.append(env_name)
+            break
+
+    return synced_env_names
+
+
 def generate_report(report_date: str, force: bool = False) -> tuple[Path, str, dict[str, Any]]:
     """生成牧原股份日报。
 
@@ -1259,6 +1296,7 @@ def generate_report(report_date: str, force: bool = False) -> tuple[Path, str, d
     当前状态、个股异动和影响判断由模型负责。
     """
     private_config = load_private_config()
+    _sync_private_secrets_to_runtime_env(private_config)
     latest_trade_date, tushare_data = get_tushare_snapshot(
         token=private_config.secrets.tushare_token,
         ts_code=PROJECT_CONFIG.tushare.ts_code,

@@ -70,6 +70,7 @@
 - DeepSeek API key
 - Tushare token
 - MySQL 用户名和密码
+- 如需手动复盘里启用 `agents` 子系统的补数链路，也可以在同一份文件里额外补 `mx_api_key` 和 `websearch_api_key`
 
 安装脚本会初始化私密配置模板，启动脚本会在启动前检查值是否已填写。
 
