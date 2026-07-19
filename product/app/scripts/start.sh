@@ -123,6 +123,24 @@ command_exists() {
   command -v "$1" >/dev/null 2>&1
 }
 
+project_mysql_host() {
+  (
+    cd "$ROOT_DIR"
+    python3 -c 'from product.app.backend.infrastructure.config.project_config import load_project_config; print(load_project_config().mysql.host)'
+  )
+}
+
+is_local_mysql_host() {
+  case "$1" in
+    ''|localhost|127.0.0.1|::1|0.0.0.0)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 mysql_is_listening() {
   lsof -nP -iTCP:3306 -sTCP:LISTEN -t >/dev/null 2>&1
 }
@@ -140,6 +158,13 @@ wait_for_mysql() {
 ensure_mysql_runtime() {
   info "正在准备 MySQL 运行环境…"
 
+  local mysql_host=""
+  mysql_host="$(project_mysql_host 2>/dev/null || true)"
+  if [ -n "$mysql_host" ] && ! is_local_mysql_host "$mysql_host"; then
+    info "检测到远程 MySQL 主机 ${mysql_host}，跳过本地 MySQL 运行时检查。"
+    return 0
+  fi
+
   if mysql_is_listening; then
     info "MySQL 监听已就绪。"
     return 0
@@ -156,11 +181,11 @@ ensure_mysql_runtime() {
       info "检测到 Docker Compose，正在启动本地 MySQL 容器…"
       (cd "$MYSQL_COMPOSE_DIR" && docker compose up -d mysql)
     else
-      error "未找到可用的 MySQL Runtime。请先安装 Docker Compose 或 Homebrew MySQL。"
+      error "未找到可用的 MySQL Runtime。请先安装 Docker Compose 或 Homebrew MySQL，或将 mysql.host 配置为远程数据库。"
       exit 1
     fi
   else
-    error "未找到 Docker Compose、mysql.server 或 Homebrew MySQL。无法启动本地数据库。"
+    error "未找到 Docker Compose、mysql.server 或 Homebrew MySQL，且 mysql.host 指向本机。无法启动本地数据库。"
     exit 1
   fi
 

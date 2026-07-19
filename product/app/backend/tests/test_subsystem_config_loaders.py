@@ -27,7 +27,7 @@ class DataConfigLoaderTests(unittest.TestCase):
         self.assertEqual(config.market_data.vix_source_url, "https://www.cboe.com/tradable_products/vix/vix_historical_data/")
         self.assertEqual(config.market_data.cache_ttl_seconds, 300)
         self.assertEqual(config.tushare.ts_code, "002714.SZ")
-        self.assertEqual(config.mysql.host, "127.0.0.1")
+        self.assertEqual(config.mysql.host, "192.168.3.166")
         self.assertEqual(config.mysql.database, "astock")
         self.assertEqual(config.api.port, 8010)
         self.assertEqual(config.monthly_refresh.label, "com.astock.data-monthly-refresh")

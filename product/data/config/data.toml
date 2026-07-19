@@ -9,7 +9,7 @@ token_env = "TUSHARE_TOKEN"
 ts_code = "002714.SZ"
 
 [mysql]
-host = "127.0.0.1"
+host = "192.168.3.166"
 port = 3306
 database = "astock"
 connect_timeout_seconds = 5.0

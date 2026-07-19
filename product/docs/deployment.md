@@ -18,7 +18,7 @@
 4. 任一检查失败，直接阻断并返回原因
 5. 业务代码只读配置中心，不依赖 shell 环境
 6. 若发现已有项目实例，启动脚本会先暂停旧实例，再拉起新实例，避免端口冲突
-7. MySQL 属于本地运行时依赖，启动脚本会优先探测 Homebrew MySQL，再回退到 Docker Compose
+7. MySQL 默认连接项目配置里的 `mysql.host`；如果它指向本机地址，启动脚本会优先探测 Homebrew MySQL，再回退到 Docker Compose；如果它指向群辉等远程数据库，则跳过本地数据库运行时检查
 8. 后端启动时只装配 MySQL 客户端，不在生命周期里强制连库；数据库探活由 `/api/database/ping` 按需触发
 
 ## 1. 依赖清单
@@ -128,7 +128,7 @@
 - `product/app/config/private.local.toml` 缺少 MySQL 用户名或密码
 - 后端 `.venv` 尚未安装完成
 - 前端 `node_modules` 尚未安装完成
-- 本机未启动 MySQL，或 Homebrew MySQL / Docker Compose 不可用
+- 本机未启动 MySQL，或 `mysql.host` 仍指向本机且 Homebrew MySQL / Docker Compose 不可用
 - Node.js 版本过低
 
 如果启动失败，优先查看脚本输出的第一条错误信息。

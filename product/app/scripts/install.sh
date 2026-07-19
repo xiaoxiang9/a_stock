@@ -184,5 +184,5 @@ post_install_check
 printf '\n'
 info "安装完成。"
 printf '  下一步请先填写：%s\n' "$PRIVATE_CONFIG"
-printf '  如需启动 MySQL，请先准备本地运行时或 Docker Compose。\n'
+printf '  如需本机数据库，请先准备本地运行时或 Docker Compose；如使用远程数据库，请确认 mysql.host 已配置正确。\n'
 printf '  然后执行：%s\n' "$ROOT_DIR/product/scripts/start.sh"
