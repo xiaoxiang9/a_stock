@@ -192,34 +192,81 @@ def _extract_search_summary_lines(raw_result: Any, *, limit: int = 3) -> list[st
     优先读取结构化 JSON 返回；如果只有纯文本，则退化为前几条非空行，
     保留 skill 名称，避免上层摘要失真。
     """
+    def _walk_for_items(value: Any) -> list[dict[str, Any]]:
+        """递归寻找最像资讯列表的结构化结果。"""
+        if isinstance(value, list):
+            items = [item for item in value if isinstance(item, dict)]
+            if items and any(item.get("title") or item.get("content") for item in items):
+                return items
+            for item in value:
+                nested = _walk_for_items(item)
+                if nested:
+                    return nested
+        if isinstance(value, dict):
+            for key in ("llmSearchResponse", "searchResponse", "result", "data"):
+                nested_value = value.get(key)
+                if nested_value is None:
+                    continue
+                nested = _walk_for_items(nested_value)
+                if nested:
+                    return nested
+            if value.get("title") or value.get("content"):
+                return [value]
+        return []
+
     lines: list[str] = []
-    if isinstance(raw_result, dict):
-        payload = raw_result.get("raw")
-        if isinstance(payload, dict):
-            data = payload.get("data")
-            if isinstance(data, list):
-                for item in data[:limit]:
-                    if not isinstance(item, dict):
-                        continue
+    payload: Any = raw_result.get("raw") if isinstance(raw_result, dict) else None
+    items = _walk_for_items(payload)
+    if items:
+        for item in items[:limit]:
+            title = str(item.get("title") or item.get("content") or "").strip()
+            if not title:
+                continue
+            date = str(item.get("date") or item.get("publishDate") or "").strip()
+            source = str(
+                item.get("source")
+                or item.get("informationType")
+                or item.get("sourceName")
+                or "东方财富妙想 mx-finance-search"
+            ).strip()
+            if len(date) >= 10:
+                date = date[:10]
+            lines.append(f"{date}｜{source}｜{title}")
+        if lines:
+            return lines
+
+    content = str(raw_result.get("content") or "").strip() if isinstance(raw_result, dict) else ""
+    if content:
+        try:
+            parsed = json.loads(content)
+        except Exception:
+            parsed = None
+        if isinstance(parsed, dict):
+            nested_items = _walk_for_items(parsed)
+            if nested_items:
+                for item in nested_items[:limit]:
                     title = str(item.get("title") or item.get("content") or "").strip()
                     if not title:
                         continue
                     date = str(item.get("date") or item.get("publishDate") or "").strip()
-                    source = str(item.get("source") or item.get("informationType") or "东方财富妙想 mx-finance-search").strip()
+                    source = str(
+                        item.get("source")
+                        or item.get("informationType")
+                        or item.get("sourceName")
+                        or "东方财富妙想 mx-finance-search"
+                    ).strip()
                     if len(date) >= 10:
                         date = date[:10]
                     lines.append(f"{date}｜{source}｜{title}")
                 if lines:
                     return lines
-        content = str(raw_result.get("content") or "").strip()
-        if content:
-            for line in content.splitlines():
-                text = line.strip()
-                if not text:
-                    continue
-                lines.append(f"东方财富妙想 mx-finance-search｜{text}")
-                if len(lines) >= limit:
-                    break
+        for line in content.splitlines():
+            text = line.strip()
+            if not text or text in {"{", "}", "[", "]"}:
+                continue
+            lines.append(f"东方财富妙想 mx-finance-search｜{text}")
+            if len(lines) >= limit:
+                break
     return lines
 
 

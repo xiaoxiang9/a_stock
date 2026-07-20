@@ -15,7 +15,7 @@ from unittest.mock import patch
 
 import pandas as pd
 
-from product.data.adapters.mx_skills import extract_mx_finance_snapshot_from_workbook
+from product.data.adapters.mx_skills import _extract_search_summary_lines, extract_mx_finance_snapshot_from_workbook
 from product.data.fetchers.hog_cycle import build_hog_cycle_metrics
 from product.data.fetchers.market_data import _calculate_wilder_rsi, _trigger_deviation
 from product.data.fetchers.signals import get_signal_data
@@ -337,6 +337,33 @@ class SignalDataFetcherTests(unittest.TestCase):
                 result = get_signal_data(company_name="牧原股份")
 
         self.assertEqual(result["announcements"], ["2026-07-10｜巨潮资讯｜牧原股份公告"])
+
+    def test_extract_search_summary_lines_reads_nested_llm_search_response(self) -> None:
+        """验证 mx-finance-search 的嵌套返回结构能正确提取标题、日期和来源。"""
+        raw_result = {
+            "raw": {
+                "data": {
+                    "llmSearchResponse": {
+                        "data": [
+                            {
+                                "title": "牧原股份:关于公司董事和高级管理人员加快实施增持股份计划暨实施结果公告",
+                                "date": "2026-07-21 00:17:18",
+                                "informationType": "NOTICE",
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+
+        lines = _extract_search_summary_lines(raw_result, limit=3)
+
+        self.assertEqual(
+            lines,
+            [
+                "2026-07-21｜NOTICE｜牧原股份:关于公司董事和高级管理人员加快实施增持股份计划暨实施结果公告",
+            ],
+        )
 
 
 class HogCycleDataFetcherTests(unittest.TestCase):
