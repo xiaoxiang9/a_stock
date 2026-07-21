@@ -301,16 +301,17 @@ def query_mx_finance_snapshot(
             loop.close()
             asyncio.set_event_loop(None)
 
-    if not isinstance(result, dict):
-        return None
-    if result.get("error"):
-        return None
+        if not isinstance(result, dict):
+            return None
+        if result.get("error"):
+            return None
 
-    xlsx_path_text = result.get("file_path") or result.get("csv_path")
-    if not xlsx_path_text:
-        return None
+        xlsx_path_text = result.get("file_path") or result.get("csv_path")
+        if not xlsx_path_text:
+            return None
 
-    return extract_mx_finance_snapshot_from_workbook(Path(xlsx_path_text))
+        # 技能包的输出落在临时目录中，必须在临时目录清理前完成解析。
+        return extract_mx_finance_snapshot_from_workbook(Path(xlsx_path_text))
 
 
 def query_mx_finance_news_summary(

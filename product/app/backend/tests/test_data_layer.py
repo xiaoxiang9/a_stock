@@ -11,11 +11,16 @@ import json
 import unittest
 import tempfile
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import pandas as pd
 
-from product.data.adapters.mx_skills import _extract_search_summary_lines, extract_mx_finance_snapshot_from_workbook
+from product.data.adapters.mx_skills import (
+    _extract_search_summary_lines,
+    extract_mx_finance_snapshot_from_workbook,
+    query_mx_finance_snapshot,
+)
 from product.data.fetchers.hog_cycle import build_hog_cycle_metrics
 from product.data.fetchers.market_data import _calculate_wilder_rsi, _trigger_deviation
 from product.data.fetchers.signals import get_signal_data
@@ -143,6 +148,31 @@ class StockDataFetcherTests(unittest.TestCase):
             snapshot = get_eastmoney_snapshot()
 
         self.assertIsNotNone(snapshot)
+        self.assertEqual(snapshot["pe_ttm"], 23.51)
+        self.assertEqual(snapshot["pb"], 2.88)
+        self.assertEqual(snapshot["turnover_rate"], 2.777)
+        self.assertEqual(snapshot["total_mv_billion"], 2299.0)
+
+    def test_query_mx_finance_snapshot_reads_before_tempdir_cleanup(self) -> None:
+        """验证 mx-finance 快照会在临时目录清理前完成解析。"""
+        async def fake_query_mx_finance_data_direct(*, query: str, indicators: str | None = None, output_dir: Path | None = None):
+            assert output_dir is not None
+            xlsx_path = Path(output_dir) / "mx_finance_data.xlsx"
+            frame = pd.DataFrame(
+                {
+                    "指标": ["市盈率PE(TTM)", "市净率PB", "换手率", "总市值"],
+                    "2026-07-17": ["23.51倍", "2.88倍", "2.777%", "2299亿"],
+                }
+            )
+            with pd.ExcelWriter(xlsx_path, engine="openpyxl") as writer:
+                frame.to_excel(writer, index=False)
+            return {"file_path": str(xlsx_path), "csv_path": str(xlsx_path), "error": None}
+
+        fake_module = SimpleNamespace(query_mx_finance_data_direct=fake_query_mx_finance_data_direct)
+        with patch("product.data.adapters.mx_skills.load_released_skill_module", return_value=fake_module):
+            trade_date, snapshot = query_mx_finance_snapshot("牧原股份002714最新PE PB 换手率 总市值", indicators="PE PB 换手率 总市值")
+
+        self.assertEqual(trade_date, "2026-07-17")
         self.assertEqual(snapshot["pe_ttm"], 23.51)
         self.assertEqual(snapshot["pb"], 2.88)
         self.assertEqual(snapshot["turnover_rate"], 2.777)
