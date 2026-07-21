@@ -275,7 +275,11 @@ def query_mx_finance_snapshot(
     *,
     indicators: str | None = None,
 ) -> tuple[str, dict[str, float]] | None:
-    """调用 `mx-finance-data` 技能并提取最新快照。"""
+    """调用 `mx-finance-data` 技能并提取最新交易日快照。
+
+    返回值保持为 `(trade_date, snapshot)` 二元组，便于上游同时拿到
+    交易日和快照数据；其中 `snapshot` 仅包含数值字段。
+    """
     _ensure_mx_api_key_env()
     module = load_released_skill_module("mx-finance-data")
     if module is None:

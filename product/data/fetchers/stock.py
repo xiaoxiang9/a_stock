@@ -333,9 +333,16 @@ def get_eastmoney_snapshot(
     兼容脚本，便于迁移期平滑过渡。
     """
     query = f"{stock_name}{stock_code}最新PE PB 换手率 总市值"
-    snapshot = query_mx_finance_snapshot(query, indicators="PE PB 换手率 总市值")
-    if snapshot:
-        return snapshot
+    snapshot_result = query_mx_finance_snapshot(query, indicators="PE PB 换手率 总市值")
+    if snapshot_result:
+        # `mx-finance-data` 会返回 (trade_date, snapshot) 二元组，
+        # 这里仅向上游暴露快照字典，避免把交易日字符串误传给报表层。
+        if isinstance(snapshot_result, tuple) and len(snapshot_result) == 2:
+            _, snapshot = snapshot_result
+            if isinstance(snapshot, dict) and snapshot:
+                return snapshot
+        if isinstance(snapshot_result, dict) and snapshot_result:
+            return snapshot_result
 
     if skill_script is not None:
         script = skill_script

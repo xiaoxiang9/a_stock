@@ -29,6 +29,7 @@ from product.data.fetchers.signals import summarize_mx_search_output
 from product.data.fetchers.stock import (
     build_stock_snapshot,
     build_stock_trend_metrics,
+    get_eastmoney_snapshot,
     _resolve_tushare_window,
     parse_eastmoney_stdout,
 )
@@ -126,6 +127,22 @@ class StockDataFetcherTests(unittest.TestCase):
             trade_date, snapshot = extract_mx_finance_snapshot_from_workbook(xlsx_path)
 
         self.assertEqual(trade_date, "2026-07-17")
+        self.assertEqual(snapshot["pe_ttm"], 23.51)
+        self.assertEqual(snapshot["pb"], 2.88)
+        self.assertEqual(snapshot["turnover_rate"], 2.777)
+        self.assertEqual(snapshot["total_mv_billion"], 2299.0)
+
+    def test_get_eastmoney_snapshot_unwraps_mx_finance_tuple(self) -> None:
+        """验证东方财富校验层会从 tuple 中提取快照字典。"""
+        with patch("product.data.fetchers.stock.query_mx_finance_snapshot", return_value=("2026-07-17", {
+            "pe_ttm": 23.51,
+            "pb": 2.88,
+            "turnover_rate": 2.777,
+            "total_mv_billion": 2299.0,
+        })):
+            snapshot = get_eastmoney_snapshot()
+
+        self.assertIsNotNone(snapshot)
         self.assertEqual(snapshot["pe_ttm"], 23.51)
         self.assertEqual(snapshot["pb"], 2.88)
         self.assertEqual(snapshot["turnover_rate"], 2.777)
