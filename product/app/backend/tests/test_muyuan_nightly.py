@@ -653,7 +653,7 @@ class EmailRenderingTests(unittest.TestCase):
         )
 
         with patch(
-            "product.agents.agents.valuation.providers.query_mx_finance_news_summary",
+            "product.data.adapters.mx_skills.query_mx_finance_news_summary",
             return_value=["2026-07-05｜资讯｜牧原股份最新公告"],
         ):
             outcome = coordinator.run(
@@ -695,7 +695,7 @@ class EmailRenderingTests(unittest.TestCase):
         )
 
         with patch(
-            "product.agents.agents.valuation.providers.query_mx_finance_snapshot",
+            "product.data.adapters.mx_skills.query_mx_finance_snapshot",
             return_value=("2026-07-15", {
                 "pe_ttm": 17.74,
                 "pb": 2.654,
@@ -732,7 +732,7 @@ class EmailRenderingTests(unittest.TestCase):
         )
 
         with patch(
-            "product.agents.agents.valuation.providers.query_mx_finance_news_summary",
+            "product.data.adapters.mx_skills.query_mx_finance_news_summary",
             return_value=[
                 "2026-07-21｜NOTICE｜牧原股份:关于公司董事和高级管理人员加快实施增持股份计划暨实施结果公告",
                 "2026-07-18｜NOTICE｜牧原股份:关于2026年度第四期科技创新债券(乡村振兴)发行结果的公告",

@@ -26,7 +26,6 @@ from typing import Any, Protocol
 
 from product.agents.config.agents_config import load_agents_config
 from product.agents.config.private_config import load_private_agents_config
-from product.data.adapters.mx_skills import query_mx_finance_news_summary, query_mx_finance_snapshot
 
 from .schemas import ValuationDataNeed, ValuationEvidenceItem, ValuationRequest
 
@@ -601,6 +600,8 @@ class MxDataEvidenceProvider:
         """按诉求补充妙想证据。"""
         query = need.query or _build_query_symbol(request)
         try:
+            from product.data.adapters.mx_skills import query_mx_finance_snapshot
+
             snapshot_result = query_mx_finance_snapshot(query, indicators="PE PB 换手率 总市值")
         except Exception:
             return []
@@ -644,6 +645,8 @@ class MxSearchEvidenceProvider:
         """按诉求补充妙想资讯证据。"""
         query = need.query or f"{request.company_name} 最新公告 研报 解读"
         try:
+            from product.data.adapters.mx_skills import query_mx_finance_news_summary
+
             lines = query_mx_finance_news_summary(query, limit=3)
         except Exception:
             return []
