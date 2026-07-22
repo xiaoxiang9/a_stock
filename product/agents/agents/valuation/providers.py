@@ -26,6 +26,7 @@ from typing import Any, Protocol
 
 from product.agents.config.agents_config import load_agents_config
 from product.agents.config.private_config import load_private_agents_config
+from product.data.adapters.mx_skills import query_mx_finance_news_summary, query_mx_finance_snapshot
 
 from .schemas import ValuationDataNeed, ValuationEvidenceItem, ValuationRequest
 
@@ -600,19 +601,29 @@ class MxDataEvidenceProvider:
         """按诉求补充妙想证据。"""
         query = need.query or _build_query_symbol(request)
         try:
-            result = _query_mx_api(self.mx_query_url, self.api_key, query)
-            lines = _extract_mx_evidence_lines(result, limit=3)
-            return [
-                ValuationEvidenceItem(
-                    title=need.title or "妙想公开证据",
-                    source="东方财富妙想 mx-data",
-                    date=request.as_of_date,
-                    content=line,
-                )
-                for line in lines
-            ]
+            snapshot_result = query_mx_finance_snapshot(query, indicators="PE PB 换手率 总市值")
         except Exception:
             return []
+        if not snapshot_result:
+            return []
+
+        trade_date, snapshot = snapshot_result
+        if not isinstance(snapshot, dict) or not snapshot:
+            return []
+        content = (
+            f"总市值 {snapshot.get('total_mv_billion', 0.0):.2f} 亿元，"
+            f"PE(TTM) {snapshot.get('pe_ttm', 0.0):.2f} 倍，"
+            f"PB {snapshot.get('pb', 0.0):.3f} 倍，"
+            f"换手率 {snapshot.get('turnover_rate', 0.0):.3f}%。"
+        )
+        return [
+            ValuationEvidenceItem(
+                title=need.title or "妙想公开证据",
+                source="东方财富妙想 mx-data",
+                date=trade_date or request.as_of_date,
+                content=content,
+            )
+        ]
 
 
 @dataclass(frozen=True)
@@ -633,20 +644,32 @@ class MxSearchEvidenceProvider:
         """按诉求补充妙想资讯证据。"""
         query = need.query or f"{request.company_name} 最新公告 研报 解读"
         try:
-            result = _query_mx_news_search(self.mx_news_search_url, self.api_key, query)
-            items = _extract_mx_search_lines(result, limit=3)
-            return [
-                ValuationEvidenceItem(
-                    title=item["title"] or need.title or "妙想资讯搜索结果",
-                    source=item["source"] or "东方财富妙想 mx-search",
-                    date=item["date"] or request.as_of_date,
-                    content=item["content"],
-                    url=item["url"],
-                )
-                for item in items
-            ]
+            lines = query_mx_finance_news_summary(query, limit=3)
         except Exception:
             return []
+        if not lines:
+            return []
+        items: list[ValuationEvidenceItem] = []
+        for line in lines:
+            parts = [part.strip() for part in line.split("｜", 2)]
+            if len(parts) == 3:
+                date_text, source_text, title_text = parts
+            elif len(parts) == 2:
+                date_text, title_text = parts
+                source_text = "东方财富妙想 mx-search"
+            else:
+                date_text = request.as_of_date
+                source_text = "东方财富妙想 mx-search"
+                title_text = line
+            items.append(
+                ValuationEvidenceItem(
+                    title=title_text or need.title or "妙想资讯搜索结果",
+                    source=source_text or "东方财富妙想 mx-search",
+                    date=date_text or request.as_of_date,
+                    content=title_text or line,
+                )
+            )
+        return items
 
 
 @dataclass(frozen=True)

@@ -16,6 +16,7 @@ from unittest.mock import patch
 from product.agents.agents.valuation import (
     AkShareEvidenceProvider,
     DataAcquisitionAgent,
+    MxDataEvidenceProvider,
     ValuationAgent,
     ValuationDataNeed,
     ValuationRequest,
@@ -652,25 +653,8 @@ class EmailRenderingTests(unittest.TestCase):
         )
 
         with patch(
-            "product.agents.agents.valuation.providers._query_mx_news_search",
-            return_value={
-                "status": 0,
-                "data": {
-                    "data": {
-                        "llmSearchResponse": {
-                            "data": [
-                                {
-                                    "title": "牧原股份最新公告",
-                                    "content": "公告摘要",
-                                    "insName": "资讯",
-                                    "date": "2026-07-05 00:00:00",
-                                    "url": "https://example.com/news",
-                                }
-                            ]
-                        }
-                    }
-                },
-            },
+            "product.agents.agents.valuation.providers.query_mx_finance_news_summary",
+            return_value=["2026-07-05｜资讯｜牧原股份最新公告"],
         ):
             outcome = coordinator.run(
                 ValuationRequest(
@@ -687,6 +671,79 @@ class EmailRenderingTests(unittest.TestCase):
         self.assertEqual(outcome.rounds[0].acquisition_attempts[0].provider_name, "mx-search")
         self.assertEqual(outcome.rounds[0].acquisition_attempts[0].status, "success")
         self.assertEqual(outcome.rounds[0].added_evidence[0].source, "资讯")
+        self.assertEqual(outcome.rounds[0].added_evidence[0].date, "2026-07-05")
+
+    def test_mx_data_provider_uses_released_skill_snapshot_wrapper(self) -> None:
+        """验证 mx-data provider 会复用仓库固化的快照 wrapper。"""
+        data_agent = DataAcquisitionAgent(providers=[MxDataEvidenceProvider(api_key="mx")])
+        request = ValuationRequest(
+            symbol="002714.SZ",
+            company_name="牧原股份",
+            as_of_date="2026-07-22",
+            evidence_items=[],
+            peer_notes=[],
+            round_index=1,
+            max_rounds=5,
+        )
+        need = ValuationDataNeed(
+            title="最新一致市值与PE",
+            query="牧原股份最新PE PB 换手率 总市值",
+            required=True,
+            preferred_sources=["mx-data"],
+            rationale="验证 snapshot wrapper",
+            fallback_queries=[],
+        )
+
+        with patch(
+            "product.agents.agents.valuation.providers.query_mx_finance_snapshot",
+            return_value=("2026-07-15", {
+                "pe_ttm": 17.74,
+                "pb": 2.654,
+                "turnover_rate": 0.66,
+                "total_mv_billion": 1934.0,
+            }),
+        ):
+            batch = data_agent.collect(request, [need], full_channel_expansion=False)
+
+        self.assertEqual(batch.attempts[0].provider_name, "mx-data")
+        self.assertEqual(batch.attempts[0].status, "success")
+        self.assertEqual(batch.items[0].source, "东方财富妙想 mx-data")
+        self.assertIn("17.74 倍", batch.items[0].content)
+
+    def test_mx_search_provider_uses_released_skill_news_wrapper(self) -> None:
+        """验证 mx-search provider 会复用仓库固化的新闻 wrapper。"""
+        data_agent = DataAcquisitionAgent(providers=[MxSearchEvidenceProvider(api_key="mx")])
+        request = ValuationRequest(
+            symbol="002714.SZ",
+            company_name="牧原股份",
+            as_of_date="2026-07-22",
+            evidence_items=[],
+            peer_notes=[],
+            round_index=1,
+            max_rounds=5,
+        )
+        need = ValuationDataNeed(
+            title="公告资讯",
+            query="牧原股份 最新公告 重大事项",
+            required=True,
+            preferred_sources=["mx-search"],
+            rationale="验证 news wrapper",
+            fallback_queries=[],
+        )
+
+        with patch(
+            "product.agents.agents.valuation.providers.query_mx_finance_news_summary",
+            return_value=[
+                "2026-07-21｜NOTICE｜牧原股份:关于公司董事和高级管理人员加快实施增持股份计划暨实施结果公告",
+                "2026-07-18｜NOTICE｜牧原股份:关于2026年度第四期科技创新债券(乡村振兴)发行结果的公告",
+            ],
+        ):
+            batch = data_agent.collect(request, [need], full_channel_expansion=False)
+
+        self.assertEqual(batch.attempts[0].provider_name, "mx-search")
+        self.assertEqual(batch.attempts[0].status, "success")
+        self.assertEqual([item.source for item in batch.items], ["NOTICE", "NOTICE"])
+        self.assertEqual(batch.items[0].date, "2026-07-21")
 
     def test_akshare_provider_is_registered_as_independent_source(self) -> None:
         """验证 akshare 会作为独立 provider 命中，而不是依赖 data 层。"""
